@@ -45,7 +45,7 @@ header.top .wrap { padding-block: 14px 12px; display: flex; flex-direction: colu
 .brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; min-width: 0 }
 h1 { font-family: var(--display); font-weight: 800; font-size: clamp(1.6rem, 4vw, 2.1rem); letter-spacing: -.02em; margin: 0; line-height: 1 }
 .count { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums }
-.search { flex: 1 1 240px; min-width: 0; position: relative }
+.search { flex: 1 1 200px; min-width: 0; position: relative }
 .search input { width: 100%; padding: 10px 14px 10px 38px; border: 1px solid var(--line); border-radius: 999px; background: var(--card) }
 .search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted) }
 .btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 9px 16px; font-weight: 600; white-space: nowrap; text-decoration: none }
@@ -55,8 +55,9 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(1.6rem, 4vw
 .btn.danger { color: var(--tomato); border-color: var(--tomato-soft); background: var(--tomato-soft) }
 .btn.ghost { background: transparent; border-color: transparent }
 .btn:disabled { opacity: .55; cursor: default }
-.who { font-size: .85rem; color: var(--muted); font-weight: 600; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
-@media (max-width: 520px) {
+.who { font-size: .85rem; color: var(--muted); font-weight: 600; max-width: 30vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+@media (max-width: 560px) {
+  .who { display: none }
   .search { flex-basis: 160px }
 }
 
@@ -73,7 +74,17 @@ select.sort { flex: none; border: 1px solid var(--line); background: var(--card)
 /* grid */
 main .wrap { padding-block: 22px 60px }
 .note { background: var(--saffron-soft); border-radius: 10px; padding: 10px 14px; margin-bottom: 18px; font-size: .92rem }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px }
+/* 2 columns on a phone, 3 on an iPad upright, 4 on an iPad sideways or a computer */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px }
+@media (max-width: 560px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px }
+  main .wrap { padding-block: 14px 40px }
+  .cbody { padding: 10px 10px 12px; gap: 6px }
+  .cbody h3 { font-size: 1rem }
+  .ph { font-size: 3rem }
+  .heart { top: 6px; right: 6px }
+  .tag { font-size: .72rem; padding: 1px 6px }
+}
 .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; display: flex; flex-direction: column; text-align: left; padding: 0; box-shadow: var(--shadow); transition: transform .15s ease; position: relative; min-width: 0 }
 .card:hover { transform: translateY(-2px) }
 .card-open { position: absolute; inset: 0; border: 0; background: transparent; padding: 0; border-radius: var(--r); z-index: 1 }
@@ -96,14 +107,20 @@ main .wrap { padding-block: 22px 60px }
 
 /* sheet */
 .scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 20; display: flex; justify-content: center; align-items: flex-start; overflow-y: auto; overscroll-behavior: contain; padding: calc(env(safe-area-inset-top, 0px) + 24px) max(12px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 24px) max(12px, env(safe-area-inset-left, 0px)) }
-.sheet { background: var(--card); border-radius: 18px; width: 100%; max-width: 760px; box-shadow: var(--shadow); overflow: hidden; min-width: 0 }
-.sheet-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line) }
+.sheet { background: var(--card); border-radius: 18px; width: 100%; max-width: 760px; box-shadow: var(--shadow); overflow: hidden; overflow: clip; min-width: 0 }
+/* The top bar (close, edit) and the save bar stay in view while scrolling a long recipe */
+.sheet-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; background: var(--card) }
+/* On a phone the window fills the screen */
+@media (max-width: 640px) {
+  .scrim { padding: calc(env(safe-area-inset-top, 0px) + 8px) 0 0 }
+  .sheet { border-radius: 18px 18px 0 0; min-height: 100%; padding-bottom: env(safe-area-inset-bottom, 0px) }
+}
 .sheet-head .grow { flex: 1; min-width: 0 }
 .sheet-title { font-family: var(--display); font-size: 1.1rem }
 .close { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); display: grid; place-items: center; flex: none }
 .gallery { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: var(--basil-soft); scrollbar-width: none }
 .gallery::-webkit-scrollbar { display: none }
-.gallery img { flex: none; width: 100%; aspect-ratio: 16/10; object-fit: cover; scroll-snap-align: start; display: block }
+.gallery img { flex: none; width: 100%; aspect-ratio: 16/10; max-height: 60vh; object-fit: cover; scroll-snap-align: start; display: block }
 .dots { display: flex; gap: 6px; justify-content: center; padding: 8px 0 0 }
 .dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--line) }
 .dots span.on { background: var(--basil) }
@@ -148,7 +165,8 @@ textarea.in { resize: vertical; min-height: 70px }
 .pthumb.busy { display: grid; place-items: center; font-size: .75rem; color: var(--muted) }
 .addphoto { width: 96px; height: 96px; border-radius: 10px; border: 1.5px dashed var(--muted); display: grid; place-items: center; text-align: center; font-size: .8rem; color: var(--muted); cursor: pointer; padding: 6px }
 .addphoto:focus-within { outline: 2px solid var(--basil); outline-offset: 2px }
-.formfoot { display: flex; gap: 10px; justify-content: flex-end; padding: 14px 22px; border-top: 1px solid var(--line); flex-wrap: wrap; align-items: center }
+.formfoot { display: flex; gap: 10px; justify-content: flex-end; padding: 14px 22px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); flex-wrap: wrap; align-items: center; position: sticky; bottom: 0; z-index: 2; background: var(--card) }
+@media (max-width: 640px) { .formfoot { padding-inline: 16px } }
 .err { color: var(--tomato); font-size: .88rem; margin-right: auto }
 .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 10px 18px; border-radius: 999px; z-index: 40; font-weight: 600; font-size: .9rem; max-width: calc(100vw - 32px); text-align: center }
 
@@ -160,6 +178,25 @@ textarea.in { resize: vertical; min-height: 70px }
 .gate-card p.err { color: var(--tomato); font-weight: 600 }
 .gate-card .btn { justify-content: center }
 .ok { background: var(--basil-soft); color: var(--ink); border-radius: 10px; padding: 10px 14px; font-size: .92rem }
+
+/* iPhone and iPad zoom in on fields with text smaller than 16px; prevent that */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea, .search input, select.sort { font-size: 16px }
+}
+
+/* Touch screens: buttons big enough for a finger */
+@media (pointer: coarse) {
+  .chip { padding: 8px 14px }
+  select.sort { padding: 8px 12px }
+  .btn { padding: 11px 18px }
+  .close { width: 44px; height: 44px }
+  .heart { width: 42px; height: 42px }
+  .x { width: 40px; height: 40px }
+  .step-btn { width: 40px; height: 40px }
+  .ingrow { grid-template-columns: 64px 92px minmax(0, 1fr) 40px }
+  .stepform { grid-template-columns: 26px minmax(0, 1fr) 40px }
+  .card:hover { transform: none }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .card { transition: none }
