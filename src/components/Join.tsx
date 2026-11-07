@@ -41,17 +41,22 @@ export function Join({ onJoined }: { onJoined: (name: string) => void }) {
           return;
         }
       }
-      const { data: saved, error } = await db.rpc("redeem_invite", { p_code: code, p_name: name });
-      if (!error) {
-        onJoined(typeof saved === "string" ? saved : name.trim());
-        return;
+      const joined = await db.rpc("join_cookbook", { p_code: code, p_name: name });
+      const result = joined.data as { ok: boolean; name?: string; error?: string } | null;
+      if (joined.error || !result) {
+        setErr("Het is niet gelukt. Controleer je verbinding en probeer het opnieuw.");
+      } else if (result.ok) {
+        onJoined(result.name || name.trim());
+      } else {
+        setErr(
+          {
+            invalid_code: "Deze code klopt niet. Controleer de code die je hebt gekregen.",
+            name_taken: "Deze naam is al in gebruik. Kies een andere naam.",
+            invalid_name: "Kies een naam van maximaal 40 tekens.",
+            too_many_attempts: "Te veel foute codes op dit apparaat. Vraag de eigenaar om hulp.",
+          }[result.error ?? ""] ?? "Het is niet gelukt. Probeer het opnieuw.",
+        );
       }
-      const m = error.message;
-      if (m.includes("invalid_code")) setErr("Deze code klopt niet of is al gebruikt.");
-      else if (m.includes("name_taken")) setErr("Deze naam is al in gebruik. Kies een andere naam.");
-      else if (m.includes("invalid_name")) setErr("Kies een naam van maximaal 40 tekens.");
-      else if (m.includes("already_member")) window.location.reload();
-      else setErr("Het is niet gelukt. Controleer je verbinding en probeer het opnieuw.");
     } finally {
       setBusy(false);
     }
@@ -61,11 +66,11 @@ export function Join({ onJoined }: { onJoined: (name: string) => void }) {
     <div className="gate">
       <form className="gate-card" onSubmit={submit} noValidate>
         <h1>Ons Kookboek</h1>
-        <p>Vul de code in die je van de eigenaar hebt gekregen, en kies de naam waaronder je recepten toevoegt.</p>
+        <p>Vul de code van het kookboek in die je van ons hebt gekregen, en kies de naam waaronder je recepten toevoegt.</p>
         {isIosBrowser() && (
           <p className="note">
             Op een iPhone of iPad: zet de app eerst op je beginscherm (Delen → <strong>Zet op beginscherm</strong>) en vul de code dáár
-            in. Anders moet je later opnieuw een code vragen.
+            in. Safari en de app op het beginscherm onthouden je los van elkaar.
           </p>
         )}
         <div className="field">
@@ -77,7 +82,6 @@ export function Join({ onJoined }: { onJoined: (name: string) => void }) {
             autoCapitalize="characters"
             autoCorrect="off"
             spellCheck={false}
-            placeholder="Bijv. K7PM-Q2XD"
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
@@ -99,7 +103,7 @@ export function Join({ onJoined }: { onJoined: (name: string) => void }) {
         <button className="btn primary" type="submit" disabled={busy}>
           {busy ? "Even geduld…" : "Naar het kookboek"}
         </button>
-        <p className="hint">Daarna blijf je op dit apparaat ingelogd. Een code werkt maar één keer.</p>
+        <p className="hint">Daarna blijf je op dit apparaat ingelogd onder je naam.</p>
       </form>
     </div>
   );

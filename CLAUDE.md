@@ -39,8 +39,8 @@ Alle tekst in de app is Nederlands.
 
 ## Inloggen
 
-- De eigenaar deelt eenmalige toegangscodes uit (`select public.new_invite_code('notitie');` in de SQL Editor). Geen e-mails of wachtwoorden.
-- Wie een code heeft, vult in de app de code in en kiest zelf een naam (uniek, één keer gekozen). Technisch: Supabase anonymous sign-in, daarna de RPC `redeem_invite(code, naam)` die de code verbruikt en het profiel aanmaakt.
+- Er is één gezamenlijke toegangscode die de eigenaar uitdeelt en instelt met `select public.set_access_code('...');` in de SQL Editor. Geen e-mails of wachtwoorden.
+- Wie de code heeft, vult in de app de code in en kiest zelf een naam (uniek, één keer gekozen). Technisch: Supabase anonymous sign-in, daarna de RPC `join_cookbook(code, naam)` die de code controleert en het profiel aanmaakt (max. 10 foute pogingen per gebruiker).
 - Daarna blijft de persoon op dat apparaat ingelogd; er is geen uitlogknop (na uitloggen is een nieuwe code nodig).
 - In Supabase staan "Allow new users to sign up" en "Allow anonymous sign-ins" aan. Toegang tot de gegevens loopt via `public.is_member()` (= heeft een profiel): alleen leden zien en wijzigen recepten, favorieten en foto's.
 - De naam wordt getoond bij "Toegevoegd door".
@@ -129,7 +129,7 @@ Zet een `.env.example` in de repo. Echte sleutels horen niet in Git.
 
 ## Klaar wanneer
 
-- [ ] Met een geldige code en een zelfgekozen naam kom je erin en blijf je ingelogd; zonder geldige code zie je niets.
+- [ ] Met de gezamenlijke code en een zelfgekozen naam kom je erin en blijf je ingelogd; zonder de juiste code zie je niets.
 - [ ] Een recept met ingrediënten, stappen en twee foto's toevoegen, bewerken en verwijderen werkt.
 - [ ] Een tweede gebruiker ziet een nieuw recept zonder te herladen.
 - [ ] Favorieten zijn per persoon en blijven bewaard na opnieuw inloggen.
