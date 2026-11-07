@@ -1,0 +1,554 @@
+<title>Ons Kookboek</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sticky header with search and filter chips, then a grid of recipe cards; a recipe and its editor open as a sheet over the page */
+:root{
+  --paper:#F4F6EF; --card:#FFFFFF; --ink:#1D2720; --muted:#5B675D; --line:#DBE1D6;
+  --basil:#2D683D; --basil-ink:#FFFFFF; --basil-soft:#E1EDE0;
+  --saffron:#B97A06; --saffron-soft:#FAEFD3; --tomato:#C2402C; --tomato-soft:#F8E3DE;
+  --scrim:rgba(20,28,22,.45);
+  --shadow:0 1px 2px rgba(29,39,32,.06),0 8px 22px rgba(29,39,32,.07);
+  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --body:"Figtree","Segoe UI",system-ui,sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#121813; --card:#1B231D; --ink:#E7ECE4; --muted:#9DA99F; --line:#2D3830;
+  --basil:#7CC08C; --basil-ink:#0F1A12; --basil-soft:#213325;
+  --saffron:#E9B94F; --saffron-soft:#352B14; --tomato:#F0806C; --tomato-soft:#3A1F1A;
+  --scrim:rgba(0,0,0,.6); --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.25);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#121813; --card:#1B231D; --ink:#E7ECE4; --muted:#9DA99F; --line:#2D3830;
+  --basil:#7CC08C; --basil-ink:#0F1A12; --basil-soft:#213325;
+  --saffron:#E9B94F; --saffron-soft:#352B14; --tomato:#F0806C; --tomato-soft:#3A1F1A;
+  --scrim:rgba(0,0,0,.6); --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.25);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+body.locked{overflow:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--basil);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+header.top .wrap{padding-block:14px 12px;display:flex;flex-direction:column;gap:12px}
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(1.6rem,4vw,2.1rem);letter-spacing:-.02em;margin:0;line-height:1}
+.count{color:var(--muted);font-size:.85rem;font-variant-numeric:tabular-nums}
+.search{flex:1 1 240px;min-width:0;position:relative}
+.search input{width:100%;padding:10px 14px 10px 38px;border:1px solid var(--line);border-radius:999px;background:var(--card)}
+.search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:9px 16px;font-weight:600;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--basil);border-color:var(--basil);color:var(--basil-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.danger{color:var(--tomato);border-color:var(--tomato-soft);background:var(--tomato-soft)}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn:disabled{opacity:.55;cursor:default}
+
+.filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;align-items:center}
+.filters::-webkit-scrollbar{display:none}
+.flabel{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;padding-left:4px}
+.sep{width:1px;height:22px;background:var(--line);flex:none;margin:0 4px}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 12px;font-size:.88rem;font-weight:500}
+.chip[aria-pressed="true"].meal{background:var(--basil);border-color:var(--basil);color:var(--basil-ink)}
+.chip[aria-pressed="true"].taste{background:var(--saffron);border-color:var(--saffron);color:var(--card)}
+.chip[aria-pressed="true"].fav{background:var(--tomato);border-color:var(--tomato);color:var(--card)}
+select.sort{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 10px;font-size:.88rem}
+
+main .wrap{padding-block:22px 60px}
+.note{background:var(--saffron-soft);border-radius:10px;padding:10px 14px;margin-bottom:18px;font-size:.92rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;text-align:left;padding:0;box-shadow:var(--shadow);transition:transform .15s ease}
+.card:hover{transform:translateY(-2px)}
+.thumb{aspect-ratio:4/3;width:100%;max-width:100%;background:var(--basil-soft);position:relative;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.ph{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:4rem;color:var(--basil);opacity:.55}
+.heart{position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:50%;border:none;background:var(--card);display:grid;place-items:center;color:var(--muted);box-shadow:var(--shadow)}
+.heart.on{color:var(--tomato)}
+.cbody{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.cbody h3{font-family:var(--display);font-weight:700;font-size:1.15rem;margin:0;line-height:1.2;text-wrap:balance;overflow-wrap:anywhere}
+.meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:.8rem;color:var(--muted)}
+.tag{border-radius:6px;padding:2px 8px;font-size:.78rem;font-weight:600}
+.tag.meal{background:var(--basil-soft);color:var(--basil)}
+.tag.taste{background:var(--saffron-soft);color:var(--saffron)}
+.time{display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums}
+
+.empty{text-align:center;padding:60px 16px;max-width:460px;margin:0 auto}
+.empty h2{font-family:var(--display);font-size:1.5rem;margin:0 0 8px}
+.empty p{color:var(--muted);margin:0 0 18px}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:20;display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;padding:calc(env(safe-area-inset-top,0px) + 24px) max(12px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 24px) max(12px,env(safe-area-inset-left,0px))}
+.sheet{background:var(--card);border-radius:18px;width:100%;max-width:760px;box-shadow:var(--shadow);overflow:hidden;min-width:0}
+.sheet-head{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.sheet-head .grow{flex:1}
+.close{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--card);display:grid;place-items:center}
+.gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;background:var(--basil-soft)}
+.gallery img{flex:none;width:100%;max-width:100%;aspect-ratio:16/10;object-fit:cover;scroll-snap-align:start;display:block}
+.dots{display:flex;gap:6px;justify-content:center;padding:8px 0 0}
+.dots span{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.sec{padding:18px 22px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.sec h2{font-family:var(--display);font-weight:800;font-size:clamp(1.5rem,4vw,2rem);margin:0;line-height:1.1;letter-spacing:-.01em;text-wrap:balance;overflow-wrap:anywhere}
+.sec h4{font-size:.75rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:6px 0 0}
+.desc{color:var(--muted);margin:0;max-width:65ch;white-space:pre-wrap}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:28px}
+@media (max-width:640px){.cols{grid-template-columns:1fr;gap:18px}.sec{padding:16px}}
+.servings{display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums}
+.step-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-weight:700}
+ul.ing{list-style:none;margin:0;padding:0}
+ul.ing li{display:flex;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line)}
+ul.ing .q{min-width:76px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--basil)}
+ol.steps{margin:0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:14px}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:10px;max-width:65ch}
+ol.steps li::before{content:counter(s);font-family:var(--display);font-weight:800;color:var(--card);background:var(--basil);width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:.85rem}
+ol.steps li span{white-space:pre-wrap;overflow-wrap:anywhere}
+.by{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--tomato-soft);padding:10px 12px;border-radius:10px}
+
+/* form */
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label,.legend{font-weight:600;font-size:.9rem}
+.hint{font-size:.8rem;color:var(--muted)}
+.in{width:100%;border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:9px 12px;min-width:0}
+textarea.in{resize:vertical;min-height:70px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.ingrow{display:grid;grid-template-columns:72px 110px minmax(0,1fr) 36px;gap:8px;align-items:center}
+@media (max-width:520px){.ingrow{grid-template-columns:64px 92px minmax(0,1fr) 32px}}
+.stepform{display:grid;grid-template-columns:26px minmax(0,1fr) 36px;gap:8px;align-items:start}
+.stepform .n{font-family:var(--display);font-weight:800;color:var(--basil);padding-top:9px;text-align:center}
+.x{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--muted);display:grid;place-items:center}
+.photos{display:flex;flex-wrap:wrap;gap:10px}
+.pthumb{width:96px;height:96px;border-radius:10px;overflow:hidden;position:relative;background:var(--basil-soft)}
+.pthumb img{width:100%;height:100%;object-fit:cover}
+.pthumb .x{position:absolute;top:4px;right:4px;width:28px;height:28px}
+.pthumb.busy{display:grid;place-items:center;font-size:.75rem;color:var(--muted)}
+.addphoto{width:96px;height:96px;border-radius:10px;border:1.5px dashed var(--muted);display:grid;place-items:center;text-align:center;font-size:.8rem;color:var(--muted);cursor:pointer;padding:6px}
+.formfoot{display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--line);flex-wrap:wrap;align-items:center}
+.err{color:var(--tomato);font-size:.88rem;margin-right:auto}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:999px;z-index:40;font-weight:600;font-size:.9rem}
+@media (prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="bar">
+      <div class="brand"><h1>Ons Kookboek</h1><span class="count" id="count"></span></div>
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Zoek op recept of ingrediënt" autocomplete="off">
+      </div>
+      <button class="btn primary" id="addBtn" type="button">+ Recept</button>
+    </div>
+    <div class="filters" id="filters" aria-label="Filters"></div>
+  </div>
+</header>
+
+<main><div class="wrap">
+  <div class="note" id="note" hidden></div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty">
+    <h2>Recepten laden…</h2>
+    <p>Hier verschijnen alle recepten van iedereen die dit kookboek gebruikt.</p>
+  </div>
+</div></main>
+
+<div id="sheetRoot"></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const MEALS=["Ontbijt","Lunch","Diner","Snack","Dessert","Bijgerecht"];
+const TASTES=["Zoet","Zout","Hartig","Pittig","Zuur","Fris"];
+const UNITS=["","g","kg","ml","dl","l","el","tl","snufje","stuk(s)","teen","blik","bos","plak","kopje","naar smaak"];
+
+const S={recipes:[],favs:new Set(),q:"",meal:null,tastes:new Set(),onlyFav:false,sort:"new",
+  db:null,user:null,assets:null,uid:null,canWrite:true,loaded:false,openId:null};
+
+const $=id=>document.getElementById(id);
+function h(tag,attrs,...kids){
+  const el=document.createElement(tag);
+  for(const [k,v] of Object.entries(attrs||{})){
+    if(v==null||v===false) continue;
+    if(k==="class") el.className=v;
+    else if(k.startsWith("on")) el.addEventListener(k.slice(2),v);
+    else if(k==="html") el.innerHTML=v;
+    else el.setAttribute(k,v===true?"":v);
+  }
+  for(const k of kids.flat()){ if(k==null||k===false) continue; el.append(k instanceof Node?k:document.createTextNode(String(k))); }
+  return el;
+}
+const ICON={
+  heart:'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.3 3 4.5 6.8 4.5c2.2 0 3.6 1.2 5.2 3 1.6-1.8 3-3 5.2-3 3.8 0 5.9 3.8 4.4 7.2C19.5 16.4 12 21 12 21z"/></svg>',
+  heartO:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20s-7-4.3-9-8.7C1.6 8.1 3.6 5 6.9 5c2 0 3.4 1.1 5.1 3 1.7-1.9 3.1-3 5.1-3 3.3 0 5.3 3.1 3.9 6.3C19 15.7 12 20 12 20z"/></svg>',
+  clock:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  x:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>'
+};
+const blob=id=>"/_blob/"+id;
+function toast(msg){const t=$("toast");t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2600);}
+function fmtDate(ts){if(!ts)return"";try{return new Date(ts).toLocaleDateString("nl-NL",{day:"numeric",month:"short",year:"numeric"})}catch{return""}}
+function parseQty(s){if(s==null)return null;const m=String(s).trim().replace(",",".");if(/^\d+(\.\d+)?$/.test(m))return parseFloat(m);const f=m.match(/^(\d+)\/(\d+)$/);if(f)return +f[1]/+f[2];return null;}
+function fmtQty(n){const r=n>=10?Math.round(n):Math.round(n*100)/100;return String(r).replace(".",",");}
+
+/* ---------- filters ---------- */
+function renderFilters(){
+  const f=$("filters");f.replaceChildren();
+  f.append(h("button",{class:"chip fav",type:"button","aria-pressed":String(S.onlyFav),onclick:()=>{S.onlyFav=!S.onlyFav;renderFilters();renderGrid();}},"♥ Favorieten"));
+  f.append(h("span",{class:"sep"}),h("span",{class:"flabel"},"Maaltijd"));
+  for(const m of MEALS) f.append(h("button",{class:"chip meal",type:"button","aria-pressed":String(S.meal===m),onclick:()=>{S.meal=S.meal===m?null:m;renderFilters();renderGrid();}},m));
+  f.append(h("span",{class:"sep"}),h("span",{class:"flabel"},"Smaak"));
+  for(const t of TASTES) f.append(h("button",{class:"chip taste",type:"button","aria-pressed":String(S.tastes.has(t)),onclick:()=>{S.tastes.has(t)?S.tastes.delete(t):S.tastes.add(t);renderFilters();renderGrid();}},t));
+  f.append(h("span",{class:"sep"}));
+  const sel=h("select",{class:"sort",id:"sort","aria-label":"Sorteren",onchange:e=>{S.sort=e.target.value;renderGrid();}},
+    h("option",{value:"new"},"Nieuwste eerst"),h("option",{value:"az"},"A–Z"),h("option",{value:"time"},"Snelste eerst"));
+  sel.value=S.sort;f.append(sel);
+}
+
+function visible(){
+  const q=S.q.trim().toLowerCase();
+  let list=S.recipes.filter(r=>{
+    if(S.onlyFav&&!S.favs.has(r.id))return false;
+    if(S.meal&&!(r.meals||[]).includes(S.meal))return false;
+    for(const t of S.tastes) if(!(r.tastes||[]).includes(t))return false;
+    if(q){const hay=[r.title,r.description,...(r.ingredients||[]).map(i=>i.name)].join(" ").toLowerCase();if(!hay.includes(q))return false;}
+    return true;
+  });
+  if(S.sort==="az") list.sort((a,b)=>(a.title||"").localeCompare(b.title||"","nl"));
+  else if(S.sort==="time") list.sort((a,b)=>(a.minutes||9999)-(b.minutes||9999));
+  else list.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  return list;
+}
+
+function heartBtn(r,cls){
+  const on=S.favs.has(r.id);
+  return h("button",{class:cls+(on?" on":""),type:"button","aria-label":on?"Verwijder uit favorieten":"Maak favoriet",html:on?ICON.heart:ICON.heartO,
+    onclick:e=>{e.stopPropagation();toggleFav(r.id);},hidden:!S.uid});
+}
+
+function renderGrid(){
+  const g=$("grid"),empty=$("empty");g.replaceChildren();
+  const n=S.recipes.length;
+  $("count").textContent=S.loaded?(n===1?"1 recept":n+" recepten"):"";
+  if(!S.loaded){empty.hidden=false;return;}
+  const list=visible();
+  if(!n){
+    empty.hidden=false;
+    empty.replaceChildren(h("h2",{},"Nog geen recepten"),
+      h("p",{},S.canWrite?"Voeg het eerste recept toe met ingrediënten, bereiding en een foto. Iedereen met wie je dit kookboek deelt ziet het meteen.":"Zodra iemand een recept toevoegt, verschijnt het hier."),
+      S.canWrite?h("button",{class:"btn primary",type:"button",onclick:()=>openEditor(null)},"+ Eerste recept toevoegen"):"");
+    return;
+  }
+  if(!list.length){
+    empty.hidden=false;
+    empty.replaceChildren(h("h2",{},"Geen recepten gevonden"),h("p",{},"Pas je zoekterm of filters aan."),
+      h("button",{class:"btn",type:"button",onclick:()=>{S.q="";$("q").value="";S.meal=null;S.tastes.clear();S.onlyFav=false;renderFilters();renderGrid();}},"Filters wissen"));
+    return;
+  }
+  empty.hidden=true;
+  for(const r of list){
+    const photo=(r.photos||[])[0];
+    const thumb=h("div",{class:"thumb"});
+    if(photo){const im=h("img",{src:blob(photo),alt:"",loading:"lazy"});im.onerror=()=>{im.remove();thumb.prepend(h("div",{class:"ph"},(r.title||"?")[0].toUpperCase()));};thumb.append(im);}
+    else thumb.append(h("div",{class:"ph"},(r.title||"?")[0].toUpperCase()));
+    thumb.append(heartBtn(r,"heart"));
+    g.append(h("button",{class:"card",type:"button",onclick:()=>openDetail(r.id)},
+      thumb,
+      h("div",{class:"cbody"},
+        h("h3",{},r.title||"Naamloos recept"),
+        h("div",{class:"meta"},
+          ...(r.meals||[]).map(m=>h("span",{class:"tag meal"},m)),
+          ...(r.tastes||[]).map(t=>h("span",{class:"tag taste"},t)),
+          r.minutes?h("span",{class:"time",html:ICON.clock+" "+(+r.minutes)+" min"}):""
+        )
+      )
+    ));
+  }
+}
+
+/* ---------- sheet ---------- */
+function closeSheet(){$("sheetRoot").replaceChildren();document.body.classList.remove("locked");S.openId=null;}
+function showSheet(content){
+  const scrim=h("div",{class:"scrim",onclick:e=>{if(e.target===scrim)closeSheet();}},content);
+  $("sheetRoot").replaceChildren(scrim);document.body.classList.add("locked");
+}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("sheetRoot").firstChild)closeSheet();});
+
+async function openDetail(id){
+  const r=S.recipes.find(x=>x.id===id);if(!r)return;
+  S.openId=id;
+  let servings=+r.servings||0;
+  const base=+r.servings||0;
+  const ingList=h("ul",{class:"ing"});
+  const drawIng=()=>{
+    ingList.replaceChildren();
+    for(const i of r.ingredients||[]){
+      const n=parseQty(i.qty);
+      const q=n!=null&&base&&servings?fmtQty(n*servings/base):(i.qty||"");
+      ingList.append(h("li",{},h("span",{class:"q"},[q,i.unit].filter(Boolean).join(" ")),h("span",{},i.name||"")));
+    }
+    if(!(r.ingredients||[]).length) ingList.append(h("li",{},h("span",{class:"hint"},"Geen ingrediënten ingevuld.")));
+  };
+  drawIng();
+  const servLabel=h("span",{});
+  const setServ=()=>{servLabel.textContent=servings+(servings===1?" persoon":" personen");drawIng();};
+  const servBox=base?h("div",{class:"servings"},
+    h("button",{class:"step-btn",type:"button","aria-label":"Minder personen",onclick:()=>{if(servings>1){servings--;setServ();}}},"−"),
+    servLabel,
+    h("button",{class:"step-btn",type:"button","aria-label":"Meer personen",onclick:()=>{servings++;setServ();}},"+")):"";
+  if(base)setServ();
+
+  const photos=r.photos||[];
+  const gallery=photos.length?h("div",{},
+    h("div",{class:"gallery"},...photos.map(p=>{const im=h("img",{src:blob(p),alt:r.title||""});im.onerror=()=>im.remove();return im;})),
+    photos.length>1?h("div",{class:"dots"},...photos.map(()=>h("span"))):""):"";
+
+  const by=h("div",{class:"by"});
+  const confirmBox=h("div",{class:"confirm",hidden:true},
+    h("span",{style:"margin-right:auto"},"Dit recept voor iedereen verwijderen?"),
+    h("button",{class:"btn",type:"button",onclick:()=>confirmBox.hidden=true},"Annuleren"),
+    h("button",{class:"btn danger",type:"button",onclick:()=>deleteRecipe(r)},"Ja, verwijderen"));
+
+  showSheet(h("div",{class:"sheet",role:"dialog","aria-modal":"true","aria-label":r.title||"Recept"},
+    h("div",{class:"sheet-head"},
+      h("button",{class:"close",type:"button","aria-label":"Sluiten",html:ICON.x,onclick:closeSheet}),
+      h("span",{class:"grow"}),
+      S.uid?h("button",{class:"btn"+(S.favs.has(r.id)?" danger":""),type:"button",onclick:async()=>{await toggleFav(r.id);openDetail(r.id);}},S.favs.has(r.id)?"♥ Favoriet":"♡ Favoriet"):"",
+      S.canWrite?h("button",{class:"btn",type:"button",onclick:()=>openEditor(r)},"Bewerken"):""),
+    gallery,
+    h("div",{class:"sec"},
+      h("h2",{},r.title||"Naamloos recept"),
+      h("div",{class:"meta"},
+        ...(r.meals||[]).map(m=>h("span",{class:"tag meal"},m)),
+        ...(r.tastes||[]).map(t=>h("span",{class:"tag taste"},t)),
+        r.minutes?h("span",{class:"time",html:ICON.clock+" "+(+r.minutes)+" min"}):""),
+      r.description?h("p",{class:"desc"},r.description):"",
+      h("div",{class:"cols"},
+        h("div",{},h("h4",{},"Ingrediënten"),servBox,ingList),
+        h("div",{},h("h4",{},"Bereiding"),
+          (r.steps||[]).length?h("ol",{class:"steps"},...r.steps.map(s=>h("li",{},h("span",{},s)))):h("p",{class:"hint"},"Geen bereiding ingevuld."))),
+      by,
+      S.canWrite?h("div",{},h("button",{class:"btn ghost",type:"button",style:"color:var(--tomato);padding-left:0",onclick:()=>confirmBox.hidden=false},"Recept verwijderen")):"",
+      confirmBox)
+  ));
+  // who added / updated
+  const ids=[r.createdBy,r.updatedBy].filter(Boolean);
+  let names={};
+  if(S.user&&ids.length){try{names=await S.user.profiles(ids);}catch{}}
+  const nm=id=>(names[id]&&names[id].name)||"iemand";
+  const parts=[];
+  if(r.createdAt)parts.push("Toegevoegd door "+nm(r.createdBy)+" op "+fmtDate(r.createdAt));
+  if(r.updatedAt&&r.updatedAt!==r.createdAt)parts.push("bijgewerkt door "+nm(r.updatedBy)+" op "+fmtDate(r.updatedAt));
+  by.textContent=parts.join(" · ");
+  by.hidden=!parts.length;
+}
+
+/* ---------- editor ---------- */
+function openEditor(r){
+  const isNew=!r;
+  const d={
+    title:r?.title||"",description:r?.description||"",meals:new Set(r?.meals||[]),tastes:new Set(r?.tastes||[]),
+    minutes:r?.minutes||"",servings:r?.servings||4,
+    ingredients:(r?.ingredients||[]).map(i=>({...i})),steps:[...(r?.steps||[])],
+    photos:[...(r?.photos||[])]
+  };
+  if(!d.ingredients.length)d.ingredients.push({qty:"",unit:"",name:""},{qty:"",unit:"",name:""},{qty:"",unit:"",name:""});
+  if(!d.steps.length)d.steps.push("","");
+  const original=new Set(r?.photos||[]);
+  const uploadedNow=new Set();
+  let busy=0;
+
+  const ingBox=h("div",{style:"display:flex;flex-direction:column;gap:8px"});
+  const drawIngs=()=>{
+    ingBox.replaceChildren();
+    d.ingredients.forEach((ing,ix)=>{
+      const unit=h("select",{class:"in",id:"unit-"+ix,"aria-label":"Eenheid",onchange:e=>ing.unit=e.target.value},...UNITS.map(u=>h("option",{value:u},u||"—")));
+      if(ing.unit&&!UNITS.includes(ing.unit))unit.append(h("option",{value:ing.unit},ing.unit));
+      unit.value=ing.unit||"";
+      ingBox.append(h("div",{class:"ingrow"},
+        h("input",{class:"in",id:"qty-"+ix,inputmode:"decimal",placeholder:"250","aria-label":"Hoeveelheid",value:ing.qty||"",oninput:e=>ing.qty=e.target.value}),
+        unit,
+        h("input",{class:"in",id:"ingname-"+ix,placeholder:"bloem","aria-label":"Ingrediënt",value:ing.name||"",oninput:e=>ing.name=e.target.value}),
+        h("button",{class:"x",type:"button","aria-label":"Ingrediënt verwijderen",html:ICON.x,onclick:()=>{d.ingredients.splice(ix,1);drawIngs();}})));
+    });
+  };
+  const stepBox=h("div",{style:"display:flex;flex-direction:column;gap:8px"});
+  const drawSteps=()=>{
+    stepBox.replaceChildren();
+    d.steps.forEach((s,ix)=>stepBox.append(h("div",{class:"stepform"},
+      h("span",{class:"n"},ix+1),
+      h("textarea",{class:"in",id:"step-"+ix,rows:"2",placeholder:ix===0?"Verwarm de oven voor op 180 °C.":"Volgende stap","aria-label":"Stap "+(ix+1),oninput:e=>d.steps[ix]=e.target.value},s),
+      h("button",{class:"x",type:"button","aria-label":"Stap verwijderen",html:ICON.x,onclick:()=>{d.steps.splice(ix,1);drawSteps();}}))));
+  };
+  const photoBox=h("div",{class:"photos"});
+  const fileIn=h("input",{type:"file",accept:"image/*",multiple:true,id:"photoInput",hidden:true,onchange:e=>{handleFiles([...e.target.files]);e.target.value="";}});
+  const drawPhotos=()=>{
+    photoBox.replaceChildren();
+    d.photos.forEach((p,ix)=>photoBox.append(h("div",{class:"pthumb"},h("img",{src:blob(p),alt:""}),
+      h("button",{class:"x",type:"button","aria-label":"Foto verwijderen",html:ICON.x,onclick:()=>{d.photos.splice(ix,1);drawPhotos();}}))));
+    for(let i=0;i<busy;i++)photoBox.append(h("div",{class:"pthumb busy"},"Uploaden…"));
+    if(S.assets)photoBox.append(h("label",{class:"addphoto",for:"photoInput"},"+ Foto toevoegen"));
+  };
+  async function handleFiles(files){
+    for(const f of files){
+      busy++;drawPhotos();
+      try{
+        const small=await shrink(f);
+        const res=await S.assets.upload(small,{type:small.type||"image/jpeg"});
+        d.photos.push(res.id);uploadedNow.add(res.id);
+      }catch(e){
+        const c=e&&e.code;
+        toast(c==="too_large"?"Deze foto is te groot.":c==="unsupported_type"?"Dit bestandstype wordt niet ondersteund. Gebruik JPG of PNG.":c==="quota_or_state"?"De opslag voor foto's is vol.":"Uploaden is niet gelukt. Probeer het opnieuw.");
+      }
+      busy--;drawPhotos();
+    }
+  }
+
+  const err=h("span",{class:"err"});
+  const saveBtn=h("button",{class:"btn primary",type:"button"},isNew?"Recept opslaan":"Wijzigingen opslaan");
+  const cancel=async()=>{
+    for(const id of uploadedNow){try{await S.assets.delete(id);}catch{}}
+    r?openDetail(r.id):closeSheet();
+  };
+  saveBtn.onclick=async()=>{
+    if(!d.title.trim()){err.textContent="Geef het recept een naam.";$("title-in").focus();return;}
+    if(busy){err.textContent="Wacht tot de foto's klaar zijn met uploaden.";return;}
+    saveBtn.disabled=true;err.textContent="";
+    const now=Date.now();
+    const body={
+      title:d.title.trim(),description:d.description.trim(),
+      meals:MEALS.filter(m=>d.meals.has(m)),tastes:TASTES.filter(t=>d.tastes.has(t)),
+      minutes:parseInt(d.minutes,10)||null,servings:parseInt(d.servings,10)||null,
+      ingredients:d.ingredients.map(i=>({qty:(i.qty||"").trim(),unit:i.unit||"",name:(i.name||"").trim()})).filter(i=>i.name||i.qty),
+      steps:d.steps.map(s=>s.trim()).filter(Boolean),
+      photos:d.photos,
+      createdAt:r?.createdAt||now,createdBy:r?.createdBy||S.uid||null,
+      updatedAt:now,updatedBy:S.uid||null
+    };
+    try{
+      const ref=isNew?S.db.collection("recipes").doc():S.db.doc("recipes/"+r.id);
+      await ref.set(body);
+      for(const id of original){if(!d.photos.includes(id)){try{await S.assets.delete(id);}catch{}}}
+      toast(isNew?"Recept toegevoegd":"Recept bijgewerkt");
+      // optimistic: snapshot will arrive; open detail when present
+      const id=ref.id;
+      const tryOpen=(n)=>{if(S.recipes.find(x=>x.id===id))openDetail(id);else if(n>0)setTimeout(()=>tryOpen(n-1),200);else closeSheet();};
+      tryOpen(15);
+    }catch(e){
+      saveBtn.disabled=false;
+      const c=e&&e.code;
+      if(c==="invalid_argument"){err.textContent="Je kunt alleen meekijken in dit kookboek. Vraag de eigenaar om bewerkrechten.";S.canWrite=false;applyWrite();}
+      else if(c==="quota_exceeded")err.textContent="Het kookboek is vol. Verwijder eerst oude recepten.";
+      else err.textContent="Opslaan is niet gelukt. Controleer je verbinding en probeer het opnieuw.";
+    }
+  };
+
+  const chipSet=(list,set,cls)=>h("div",{class:"chips"},...list.map(v=>{
+    const b=h("button",{class:"chip "+cls,type:"button","aria-pressed":String(set.has(v))},v);
+    b.onclick=()=>{set.has(v)?set.delete(v):set.add(v);b.setAttribute("aria-pressed",String(set.has(v)));};return b;}));
+
+  showSheet(h("div",{class:"sheet",role:"dialog","aria-modal":"true","aria-label":isNew?"Nieuw recept":"Recept bewerken"},
+    h("div",{class:"sheet-head"},
+      h("button",{class:"close",type:"button","aria-label":"Annuleren",html:ICON.x,onclick:cancel}),
+      h("strong",{class:"grow",style:"font-family:var(--display);font-size:1.1rem"},isNew?"Nieuw recept":"Recept bewerken")),
+    h("div",{class:"sec"},
+      h("div",{class:"field"},h("label",{for:"title-in"},"Naam van het recept"),
+        h("input",{class:"in",id:"title-in",placeholder:"Bijv. Appeltaart van oma",value:d.title,oninput:e=>d.title=e.target.value})),
+      h("div",{class:"field"},h("label",{for:"desc-in"},"Korte omschrijving"),
+        h("textarea",{class:"in",id:"desc-in",rows:"2",placeholder:"Waar komt het vandaan, waarom is het lekker?",oninput:e=>d.description=e.target.value},d.description)),
+      h("div",{class:"field"},h("span",{class:"legend"},"Maaltijd"),chipSet(MEALS,d.meals,"meal")),
+      h("div",{class:"field"},h("span",{class:"legend"},"Smaak"),chipSet(TASTES,d.tastes,"taste")),
+      h("div",{class:"row2"},
+        h("div",{class:"field"},h("label",{for:"min-in"},"Bereidingstijd (min)"),h("input",{class:"in",id:"min-in",type:"number",min:"0",inputmode:"numeric",value:d.minutes,oninput:e=>d.minutes=e.target.value})),
+        h("div",{class:"field"},h("label",{for:"serv-in"},"Aantal personen"),h("input",{class:"in",id:"serv-in",type:"number",min:"1",inputmode:"numeric",value:d.servings,oninput:e=>d.servings=e.target.value}))),
+      h("div",{class:"field"},h("span",{class:"legend"},"Foto's"),
+        S.assets?"":h("span",{class:"hint"},"Foto's toevoegen kan alleen met bewerkrechten op dit kookboek."),
+        photoBox,fileIn),
+      h("div",{class:"field"},h("span",{class:"legend"},"Ingrediënten"),h("span",{class:"hint"},"Hoeveelheden worden automatisch omgerekend als je het aantal personen aanpast."),ingBox,
+        h("div",{},h("button",{class:"btn",type:"button",onclick:()=>{d.ingredients.push({qty:"",unit:"",name:""});drawIngs();ingBox.lastChild?.querySelector("input")?.focus();}},"+ Ingrediënt"))),
+      h("div",{class:"field"},h("span",{class:"legend"},"Bereiding"),stepBox,
+        h("div",{},h("button",{class:"btn",type:"button",onclick:()=>{d.steps.push("");drawSteps();stepBox.lastChild?.querySelector("textarea")?.focus();}},"+ Stap")))
+    ),
+    h("div",{class:"formfoot"},err,h("button",{class:"btn",type:"button",onclick:cancel},"Annuleren"),saveBtn)
+  ));
+  drawIngs();drawSteps();drawPhotos();
+  if(isNew)$("title-in").focus();
+}
+
+async function shrink(file){
+  const MAX=1600;
+  try{
+    const url=URL.createObjectURL(file);
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
+    const scale=Math.min(1,MAX/Math.max(img.naturalWidth,img.naturalHeight));
+    const c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*scale);c.height=Math.round(img.naturalHeight*scale);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    URL.revokeObjectURL(url);
+    const b=await new Promise(res=>c.toBlob(res,"image/jpeg",.85));
+    if(b)return b;
+  }catch{}
+  return file;
+}
+
+/* ---------- data ---------- */
+let favChain=Promise.resolve();
+function toggleFav(id){
+  if(!S.db||!S.uid)return Promise.resolve();
+  S.favs.has(id)?S.favs.delete(id):S.favs.add(id);
+  renderGrid();
+  const ids=[...S.favs];
+  favChain=favChain.then(()=>S.db.doc("data/users/"+S.uid+"/favorites").set({ids})).catch(()=>toast("Favoriet opslaan is niet gelukt."));
+  return favChain;
+}
+async function deleteRecipe(r){
+  try{
+    await S.db.doc("recipes/"+r.id).delete();
+    for(const p of r.photos||[]){try{await S.assets?.delete(p);}catch{}}
+    closeSheet();toast("Recept verwijderd");
+  }catch(e){toast(e&&e.code==="invalid_argument"?"Je hebt geen rechten om te verwijderen.":"Verwijderen is niet gelukt.");}
+}
+function applyWrite(){$("addBtn").hidden=!S.canWrite;}
+function showNote(t){const n=$("note");n.textContent=t;n.hidden=!t;}
+
+$("q").addEventListener("input",e=>{S.q=e.target.value;renderGrid();});
+$("addBtn").addEventListener("click",()=>openEditor(null));
+renderFilters();renderGrid();
+
+(async()=>{
+  if(!window.claude||!window.claude.use){showNote("Open dit kookboek via Claude om recepten te bekijken en toe te voegen.");S.canWrite=false;applyWrite();return;}
+  const [db,user,assets]=await Promise.all([claude.use("db"),claude.use("user"),claude.use("assets")]);
+  S.db=db;S.user=user;S.assets=assets;
+  if(!db){S.canWrite=false;applyWrite();showNote("Meld je aan bij Claude om de recepten te zien.");S.loaded=true;renderGrid();return;}
+  if(user){
+    S.uid=await user.id();
+    const cw=await user.can("data.write");
+    if(cw===false)S.canWrite=false;
+  }
+  applyWrite();
+  if(!S.canWrite)showNote("Je kijkt mee in dit kookboek. Vraag de eigenaar om bewerkrechten als je ook recepten wilt toevoegen.");
+
+  let timer=setTimeout(()=>{if(!S.loaded){showNote("De recepten zijn nog niet bereikbaar. Controleer je internetverbinding.");}else showNote("De recepten zijn mogelijk niet helemaal actueel.");},10000);
+  db.collection("recipes").onSnapshot(snap=>{
+    S.recipes=snap.docs.map(d=>({id:d.id,...d.data()}));
+    S.loaded=true;
+    if(!snap.metadata.fromCache&&timer){clearTimeout(timer);timer=null;if(S.canWrite)showNote("");}
+    renderGrid();
+    if(S.openId&&!document.querySelector(".formfoot")){S.recipes.find(x=>x.id===S.openId)?openDetail(S.openId):closeSheet();}
+  },e=>{clearTimeout(timer);timer=null;S.loaded=true;renderGrid();showNote(e.code==="revoked"?"Je hebt geen toegang meer tot dit kookboek.":"De recepten konden niet worden geladen. Herlaad de pagina later.");});
+
+  if(S.uid){
+    db.doc("data/users/"+S.uid+"/favorites").onSnapshot(s=>{
+      if(s.metadata.hasPendingWrites)return;
+      S.favs=new Set((s.exists&&s.data().ids)||[]);renderGrid();
+    },()=>{});
+  }
+})();
+</script>

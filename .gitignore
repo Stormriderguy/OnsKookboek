@@ -1,0 +1,16 @@
+# Dependencies en build
+node_modules/
+dist/
+
+# Echte sleutels horen niet in Git (alleen .env.example)
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel/
+
+# Editor en systeem
+.DS_Store
+Thumbs.db
+*.log
