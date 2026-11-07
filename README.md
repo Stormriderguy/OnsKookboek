@@ -36,7 +36,7 @@ De code staat in [github.com/Stormriderguy/OnsKookboek](https://github.com/Storm
 1. Importeer de GitHub-repository in Vercel (**Add New → Project**). Kies bij **Application Preset** de optie **Vite**.
 2. Ga naar **Settings → Environment Variables** en voeg toe, allebei als type **Config**, voor alle omgevingen:
    - `VITE_SUPABASE_URL`: de Project URL uit Supabase (knop **Connect**)
-   - `VITE_SUPABASE_ANON_KEY`: de **publishable**- of **anon**-sleutel uit Supabase
+   - `VITE_SUPABASE_ANON_KEY` (of `VITE_SUPABASE_PUBLISHABLE_KEY`, zoals Supabase hem noemt): de **publishable**- of **anon**-sleutel uit Supabase
 3. Start een nieuwe deploy (**Deployments → ⋯ → Redeploy**), zodat de sleutels worden meegenomen.
 
 Gebruik nooit de `service_role`- of `secret`-sleutel: die geeft volledige toegang tot de database.
