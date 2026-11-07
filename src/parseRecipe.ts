@@ -99,9 +99,19 @@ export function normalizeParsed(raw: unknown): ParsedRecipe {
   const ingredients = (Array.isArray(r.ingredients) ? r.ingredients : [])
     .map((i) => {
       const o = (i && typeof i === "object" ? i : {}) as Record<string, unknown>;
+      let qty = str(o.qty);
+      let unit = str(o.unit);
+      let name = str(o.name);
+      // The model sometimes puts the whole line in one field and the name again in another
+      // ("2 limoenen" + "limoenen"): keep each word once.
+      const head = [qty, unit].filter(Boolean).join(" ").toLowerCase();
+      const low = name.toLowerCase();
+      if (name && (head === low || head.endsWith(` ${low}`))) name = "";
+      else if (head && (low === head || low.startsWith(`${head} `))) qty = unit = "";
+      else if (qty && low.startsWith(`${qty.toLowerCase()} `)) qty = "";
       // Run qty, unit and name together through the same parser as a typed line,
       // so units are mapped onto the app's list and unknown units stay in the name.
-      return parseIngredient([str(o.qty), str(o.unit), str(o.name)].filter(Boolean).join(" "));
+      return parseIngredient([qty, unit, name].filter(Boolean).join(" "));
     })
     .filter((i) => i.name || i.qty);
 
