@@ -22,6 +22,9 @@ export type Recipe = {
   created_by: string | null;
   updated_at: string;
   updated_by: string | null;
+  /** Filled in by the database: the name of whoever posted / last changed it. */
+  created_by_name?: string | null;
+  updated_by_name?: string | null;
 };
 
 /** The fields the editor writes; who/when is filled in by the database. */

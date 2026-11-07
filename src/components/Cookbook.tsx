@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BUCKET, photoUrl, supabase } from "../supabase";
-import { MEALS, TASTES, type Recipe, type SortKey } from "../types";
+import type { Recipe, SortKey } from "../types";
+import { FilterMenu, type Author } from "./FilterMenu";
 import { ClockIcon, HeartIcon, SearchIcon } from "./Icons";
 import { RecipeDetail } from "./RecipeDetail";
 import { RecipeEditor } from "./RecipeEditor";
@@ -19,6 +20,7 @@ export function Cookbook({ uid, myName }: Props) {
   const [meal, setMeal] = useState<string | null>(null);
   const [tastes, setTastes] = useState<Set<string>>(new Set());
   const [onlyFav, setOnlyFav] = useState(false);
+  const [author, setAuthor] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("new");
 
   const [openId, setOpenId] = useState<string | null>(null);
@@ -131,10 +133,26 @@ export function Cookbook({ uid, myName }: Props) {
     [db, toast],
   );
 
+  const authorName = useCallback(
+    (r: Recipe) => r.created_by_name || (r.created_by ? names[r.created_by] : "") || "",
+    [names],
+  );
+
+  // Everyone who posted at least one recipe, A–Z.
+  const authors = useMemo<Author[]>(() => {
+    const map = new Map<string, string>();
+    for (const r of recipes) {
+      const name = authorName(r);
+      if (r.created_by && name) map.set(r.created_by, name);
+    }
+    return [...map].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, "nl"));
+  }, [recipes, authorName]);
+
   const visible = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const list = recipes.filter((r) => {
       if (onlyFav && !favs.has(r.id)) return false;
+      if (author && r.created_by !== author) return false;
       if (meal && !(r.meals ?? []).includes(meal)) return false;
       for (const t of tastes) if (!(r.tastes ?? []).includes(t)) return false;
       if (needle) {
@@ -147,14 +165,32 @@ export function Cookbook({ uid, myName }: Props) {
     else if (sort === "time") list.sort((a, b) => (a.minutes || 9999) - (b.minutes || 9999));
     else list.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
     return list;
-  }, [recipes, q, meal, tastes, onlyFav, favs, sort]);
+  }, [recipes, q, meal, tastes, onlyFav, author, favs, sort]);
+
+  const toggleTaste = (t: string) =>
+    setTastes((s) => {
+      const n2 = new Set(s);
+      if (n2.has(t)) n2.delete(t);
+      else n2.add(t);
+      return n2;
+    });
 
   const clearFilters = () => {
-    setQ("");
     setMeal(null);
     setTastes(new Set());
     setOnlyFav(false);
+    setAuthor(null);
   };
+
+  // The active filters, shown under the header so it's clear why recipes are missing.
+  const active: { key: string; label: string; remove: () => void }[] = [];
+  if (onlyFav) active.push({ key: "fav", label: "♥ Favorieten", remove: () => setOnlyFav(false) });
+  if (meal) active.push({ key: "meal", label: meal, remove: () => setMeal(null) });
+  for (const t of tastes) active.push({ key: "t-" + t, label: t, remove: () => toggleTaste(t) });
+  if (author) {
+    const a = authors.find((x) => x.id === author);
+    active.push({ key: "author", label: `Door ${a?.name ?? "iemand"}`, remove: () => setAuthor(null) });
+  }
 
   const open = openId ? recipes.find((r) => r.id === openId) : undefined;
   // Someone else deleted the recipe that is open: close it.
@@ -173,7 +209,6 @@ export function Cookbook({ uid, myName }: Props) {
               <h1>Ons Kookboek</h1>
               <span className="count">{loaded ? (n === 1 ? "1 recept" : `${n} recepten`) : ""}</span>
             </div>
-            {myName && <div className="who">{myName}</div>}
             <div className="search">
               <SearchIcon />
               <label className="sr-only" htmlFor="q">Zoeken</label>
@@ -186,47 +221,25 @@ export function Cookbook({ uid, myName }: Props) {
                 onChange={(e) => setQ(e.target.value)}
               />
             </div>
-            <button className="btn primary" type="button" onClick={() => setEditing({ recipe: null })}>
+            <button className="btn primary add-btn" type="button" onClick={() => setEditing({ recipe: null })}>
               + Recept
             </button>
-          </div>
-          <div className="filters" role="group" aria-label="Filters">
-            <button className="chip fav" type="button" aria-pressed={onlyFav} onClick={() => setOnlyFav(!onlyFav)}>
-              ♥ Favorieten
-            </button>
-            <span className="sep" />
-            <span className="flabel">Maaltijd</span>
-            {MEALS.map((m) => (
-              <button key={m} className="chip meal" type="button" aria-pressed={meal === m} onClick={() => setMeal(meal === m ? null : m)}>
-                {m}
-              </button>
-            ))}
-            <span className="sep" />
-            <span className="flabel">Smaak</span>
-            {TASTES.map((t) => (
-              <button
-                key={t}
-                className="chip taste"
-                type="button"
-                aria-pressed={tastes.has(t)}
-                onClick={() =>
-                  setTastes((s) => {
-                    const n2 = new Set(s);
-                    if (n2.has(t)) n2.delete(t);
-                    else n2.add(t);
-                    return n2;
-                  })
-                }
-              >
-                {t}
-              </button>
-            ))}
-            <span className="sep" />
-            <select className="sort" aria-label="Sorteren" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
-              <option value="new">Nieuwste eerst</option>
-              <option value="az">A–Z</option>
-              <option value="time">Snelste eerst</option>
-            </select>
+            <FilterMenu
+              myName={myName}
+              onlyFav={onlyFav}
+              setOnlyFav={setOnlyFav}
+              meal={meal}
+              setMeal={setMeal}
+              tastes={tastes}
+              toggleTaste={toggleTaste}
+              author={author}
+              setAuthor={setAuthor}
+              authors={authors}
+              sort={sort}
+              setSort={setSort}
+              activeCount={active.length}
+              onClear={clearFilters}
+            />
           </div>
         </div>
       </header>
@@ -234,6 +247,18 @@ export function Cookbook({ uid, myName }: Props) {
       <main>
         <div className="wrap">
           {loadError && <div className="note" role="status">{loadError}</div>}
+          {active.length > 0 && (
+            <div className="active-filters" aria-label="Actieve filters">
+              {active.map((f) => (
+                <button key={f.key} className="chip on" type="button" onClick={f.remove} aria-label={`Filter ${f.label} weghalen`}>
+                  {f.label} <span aria-hidden="true">×</span>
+                </button>
+              ))}
+              <button className="btn ghost" type="button" onClick={clearFilters}>
+                Wissen
+              </button>
+            </div>
+          )}
           {!loaded ? (
             <div className="empty">
               <h2>Recepten laden…</h2>
@@ -251,14 +276,28 @@ export function Cookbook({ uid, myName }: Props) {
             <div className="empty">
               <h2>Geen recepten gevonden</h2>
               <p>Pas je zoekterm of filters aan.</p>
-              <button className="btn" type="button" onClick={clearFilters}>
+              <button
+                className="btn"
+                type="button"
+                onClick={() => {
+                  clearFilters();
+                  setQ("");
+                }}
+              >
                 Filters wissen
               </button>
             </div>
           ) : (
             <div className="grid">
               {visible.map((r) => (
-                <RecipeCard key={r.id} recipe={r} fav={favs.has(r.id)} onOpen={() => setOpenId(r.id)} onFav={() => toggleFav(r.id)} />
+                <RecipeCard
+                  key={r.id}
+                  recipe={r}
+                  author={authorName(r)}
+                  fav={favs.has(r.id)}
+                  onOpen={() => setOpenId(r.id)}
+                  onFav={() => toggleFav(r.id)}
+                />
               ))}
             </div>
           )}
@@ -299,7 +338,9 @@ export function Cookbook({ uid, myName }: Props) {
   );
 }
 
-function RecipeCard({ recipe: r, fav, onOpen, onFav }: { recipe: Recipe; fav: boolean; onOpen: () => void; onFav: () => void }) {
+type CardProps = { recipe: Recipe; author: string; fav: boolean; onOpen: () => void; onFav: () => void };
+
+function RecipeCard({ recipe: r, author, fav, onOpen, onFav }: CardProps) {
   const [broken, setBroken] = useState(false);
   const photo = r.photos?.[0];
   return (
@@ -323,6 +364,7 @@ function RecipeCard({ recipe: r, fav, onOpen, onFav }: { recipe: Recipe; fav: bo
       <div className="cbody">
         <h3>{r.title || "Naamloos recept"}</h3>
         <Meta recipe={r} />
+        {author && <p className="card-by">door {author}</p>}
       </div>
       <button className="card-open" type="button" onClick={onOpen} aria-label={`${r.title} openen`} />
     </article>

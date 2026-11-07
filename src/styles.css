@@ -45,7 +45,7 @@ header.top .wrap { padding-block: 14px 12px; display: flex; flex-direction: colu
 .brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; min-width: 0 }
 h1 { font-family: var(--display); font-weight: 800; font-size: clamp(1.6rem, 4vw, 2.1rem); letter-spacing: -.02em; margin: 0; line-height: 1 }
 .count { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums }
-.search { flex: 1 1 200px; min-width: 0; position: relative }
+.search { flex: 1 1 160px; min-width: 0; position: relative }
 .search input { width: 100%; padding: 10px 14px 10px 38px; border: 1px solid var(--line); border-radius: 999px; background: var(--card) }
 .search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted) }
 .btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 9px 16px; font-weight: 600; white-space: nowrap; text-decoration: none }
@@ -55,21 +55,39 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(1.6rem, 4vw
 .btn.danger { color: var(--tomato); border-color: var(--tomato-soft); background: var(--tomato-soft) }
 .btn.ghost { background: transparent; border-color: transparent }
 .btn:disabled { opacity: .55; cursor: default }
-.who { font-size: .85rem; color: var(--muted); font-weight: 600; max-width: 30vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+/* Phone: brand + menu on the first row, search + "+ Recept" on the second */
 @media (max-width: 560px) {
-  .who { display: none }
-  .search { flex-basis: 160px }
+  .brand { order: 0 }
+  .menu-wrap { order: 1 }
+  .search { order: 2; flex-basis: 160px }
+  .add-btn { order: 3 }
 }
 
-.filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; align-items: center }
-.filters::-webkit-scrollbar { display: none }
-.flabel { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; padding-left: 4px; flex: none }
-.sep { width: 1px; height: 22px; background: var(--line); flex: none; margin: 0 4px }
+.flabel { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700 }
 .chip { flex: none; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 5px 12px; font-size: .88rem; font-weight: 500 }
-.chip[aria-pressed="true"].meal { background: var(--basil); border-color: var(--basil); color: var(--basil-ink) }
+.chip[aria-pressed="true"].meal, .chip[aria-pressed="true"].author, .chip.on { background: var(--basil); border-color: var(--basil); color: var(--basil-ink) }
 .chip[aria-pressed="true"].taste { background: var(--saffron); border-color: var(--saffron); color: var(--card) }
 .chip[aria-pressed="true"].fav { background: var(--tomato); border-color: var(--tomato); color: var(--card) }
-select.sort { flex: none; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 5px 10px; font-size: .88rem }
+
+/* Filter menu, top right */
+.menu-wrap { position: relative; margin-left: auto }
+.menu-btn.active { border-color: var(--basil); color: var(--basil) }
+.badge { min-width: 20px; height: 20px; border-radius: 999px; background: var(--basil); color: var(--basil-ink); font-size: .75rem; display: grid; place-items: center; padding: 0 6px; font-variant-numeric: tabular-nums }
+.menu-panel {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 15;
+  width: min(400px, calc(100vw - 32px)); max-height: calc(100dvh - 120px); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow);
+  padding: 16px; display: flex; flex-direction: column; gap: 16px;
+}
+.menu-who { margin: 0; font-size: .88rem; color: var(--muted); padding-bottom: 12px; border-bottom: 1px solid var(--line) }
+.menu-who strong { color: var(--ink) }
+.menu-sec { display: flex; flex-direction: column; gap: 8px }
+.menu-foot { display: flex; justify-content: space-between; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); position: sticky; bottom: -16px; background: var(--card); margin-bottom: -16px; padding-bottom: 16px }
+@media (max-width: 380px) { .menu-label { display: none } }
+
+.active-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px }
+.active-filters .btn { padding: 6px 10px; font-size: .88rem; color: var(--muted) }
+.card-by { margin: 0; font-size: .8rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 
 /* grid */
 main .wrap { padding-block: 22px 60px }
@@ -181,13 +199,12 @@ textarea.in { resize: vertical; min-height: 70px }
 
 /* iPhone and iPad zoom in on fields with text smaller than 16px; prevent that */
 @supports (-webkit-touch-callout: none) {
-  input, select, textarea, .search input, select.sort { font-size: 16px }
+  input, select, textarea, .search input { font-size: 16px }
 }
 
 /* Touch screens: buttons big enough for a finger */
 @media (pointer: coarse) {
   .chip { padding: 8px 14px }
-  select.sort { padding: 8px 12px }
   .btn { padding: 11px 18px }
   .close { width: 44px; height: 44px }
   .heart { width: 42px; height: 42px }

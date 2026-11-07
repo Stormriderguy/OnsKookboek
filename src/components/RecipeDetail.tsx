@@ -32,12 +32,12 @@ export function RecipeDetail({ recipe: r, names, fav, onFav, onEdit, onDelete, o
     if (missingName) onNeedNames();
   }, [missingName, onNeedNames]);
 
-  const nm = (id: string | null) => (id && names[id]) || "iemand";
+  const nm = (stored: string | null | undefined, id: string | null) => stored || (id && names[id]) || "iemand";
   const by: string[] = [];
-  if (r.created_at) by.push(`Toegevoegd door ${nm(r.created_by)} op ${fmtDate(r.created_at)}`);
+  if (r.created_at) by.push(`Toegevoegd door ${nm(r.created_by_name, r.created_by)} op ${fmtDate(r.created_at)}`);
   // Only mention an update when it came clearly later than creating it.
   if (r.updated_at && Date.parse(r.updated_at) - Date.parse(r.created_at) > 60_000)
-    by.push(`bijgewerkt door ${nm(r.updated_by)} op ${fmtDate(r.updated_at)}`);
+    by.push(`bijgewerkt door ${nm(r.updated_by_name, r.updated_by)} op ${fmtDate(r.updated_at)}`);
 
   const ingredients = r.ingredients ?? [];
   const steps = r.steps ?? [];

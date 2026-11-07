@@ -87,6 +87,67 @@ create trigger recipes_set_updated
   before update on public.recipes
   for each row execute function public.set_updated();
 
+-- De naam van wie het recept plaatste (en het laatst wijzigde) staat in het recept zelf.
+alter table public.recipes add column if not exists created_by_name text;
+alter table public.recipes add column if not exists updated_by_name text;
+
+create or replace function public.set_author_names()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if coalesce(current_setting('ons.reassigning', true), '') = 'on' then
+    return new;
+  end if;
+  if tg_op = 'INSERT' then
+    new.created_by_name := (select display_name from public.profiles where id = coalesce(new.created_by, auth.uid()));
+    new.updated_by_name := new.created_by_name;
+  else
+    new.created_by_name := old.created_by_name;
+    new.updated_by_name := (select display_name from public.profiles where id = auth.uid());
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists recipes_set_author_names on public.recipes;
+create trigger recipes_set_author_names
+  before insert or update on public.recipes
+  for each row execute function public.set_author_names();
+
+-- Past de eigenaar een naam aan (bijv. een tikfout), dan verandert die ook in de recepten.
+create or replace function public.rename_in_recipes()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.display_name is distinct from old.display_name then
+    perform set_config('ons.reassigning', 'on', true);
+    update public.recipes set created_by_name = new.display_name where created_by = new.id;
+    update public.recipes set updated_by_name = new.display_name where updated_by = new.id;
+    perform set_config('ons.reassigning', 'off', true);
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_rename_in_recipes on public.profiles;
+create trigger profiles_rename_in_recipes
+  after update of display_name on public.profiles
+  for each row execute function public.rename_in_recipes();
+
+-- Bestaande recepten aanvullen met de naam (zonder 'bijgewerkt op' te veranderen)
+select set_config('ons.reassigning', 'on', false);
+update public.recipes r set created_by_name = p.display_name
+  from public.profiles p where p.id = r.created_by and r.created_by_name is distinct from p.display_name;
+update public.recipes r set updated_by_name = p.display_name
+  from public.profiles p where p.id = r.updated_by and r.updated_by_name is distinct from p.display_name;
+select set_config('ons.reassigning', 'off', false);
+
 -- ============================================================
 -- Toegang: lid zijn, de code instellen en binnenkomen
 -- ============================================================
