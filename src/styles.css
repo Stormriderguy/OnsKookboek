@@ -59,7 +59,7 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(1.6rem, 4vw
 @media (max-width: 560px) {
   header.top .wrap { gap: 10px }
   .bar { gap: 10px }
-  .brand { order: 0; flex: 1 1 100%; margin-right: 0 }
+  .brand { order: 0; flex: 1 1 100%; margin-right: 0; justify-content: space-between }
   .menu-wrap { order: 1; flex: 1 1 0; margin-left: 0 }
   .menu-btn { width: 100%; justify-content: center }
   .add-btn { order: 2; flex: 1 1 0; justify-content: center }

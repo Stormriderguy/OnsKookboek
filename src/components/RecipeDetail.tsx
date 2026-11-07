@@ -8,6 +8,8 @@ import { Sheet } from "./Sheet";
 
 type Props = {
   recipe: Recipe;
+  /** Only whoever posted the recipe may edit or delete it. */
+  canEdit: boolean;
   names: Record<string, string>;
   fav: boolean;
   onFav: () => void;
@@ -17,7 +19,7 @@ type Props = {
   onNeedNames: () => void;
 };
 
-export function RecipeDetail({ recipe: r, names, fav, onFav, onEdit, onDelete, onClose, onNeedNames }: Props) {
+export function RecipeDetail({ recipe: r, canEdit, names, fav, onFav, onEdit, onDelete, onClose, onNeedNames }: Props) {
   const base = r.servings || 0;
   const [servings, setServings] = useState(base);
   const [confirming, setConfirming] = useState(false);
@@ -52,9 +54,11 @@ export function RecipeDetail({ recipe: r, names, fav, onFav, onEdit, onDelete, o
         <button className={"btn" + (fav ? " danger" : "")} type="button" aria-pressed={fav} onClick={onFav}>
           {fav ? "♥ Favoriet" : "♡ Favoriet"}
         </button>
-        <button className="btn" type="button" onClick={onEdit}>
-          Bewerken
-        </button>
+        {canEdit && (
+          <button className="btn" type="button" onClick={onEdit}>
+            Bewerken
+          </button>
+        )}
       </div>
 
       <Gallery photos={r.photos ?? []} title={r.title} />
@@ -117,7 +121,7 @@ export function RecipeDetail({ recipe: r, names, fav, onFav, onEdit, onDelete, o
           </div>
         </div>
         {by.length > 0 && <div className="by">{by.join(" · ")}</div>}
-        {!confirming ? (
+        {!canEdit ? null : !confirming ? (
           <div>
             <button className="btn ghost link-danger" type="button" onClick={() => setConfirming(true)}>
               Recept verwijderen

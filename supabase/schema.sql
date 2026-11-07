@@ -263,16 +263,20 @@ alter table public.favorites    enable row level security;
 alter table public.access_code   enable row level security;  -- geen regels = de app kan er niet bij
 alter table public.join_attempts enable row level security;  -- idem
 
--- recipes: leden mogen alles
+-- recipes: alle leden mogen lezen en toevoegen; alleen wie het recept plaatste, mag het wijzigen of verwijderen
 drop policy if exists "recipes lezen"       on public.recipes;
 drop policy if exists "recipes toevoegen"   on public.recipes;
 drop policy if exists "recipes wijzigen"    on public.recipes;
 drop policy if exists "recipes verwijderen" on public.recipes;
 
 create policy "recipes lezen"       on public.recipes for select to authenticated using ((select public.is_member()));
-create policy "recipes toevoegen"   on public.recipes for insert to authenticated with check ((select public.is_member()));
-create policy "recipes wijzigen"    on public.recipes for update to authenticated using ((select public.is_member())) with check ((select public.is_member()));
-create policy "recipes verwijderen" on public.recipes for delete to authenticated using ((select public.is_member()));
+create policy "recipes toevoegen"   on public.recipes for insert to authenticated
+  with check ((select public.is_member()) and created_by = (select auth.uid()));
+create policy "recipes wijzigen"    on public.recipes for update to authenticated
+  using ((select public.is_member()) and created_by = (select auth.uid()))
+  with check ((select public.is_member()) and created_by = (select auth.uid()));
+create policy "recipes verwijderen" on public.recipes for delete to authenticated
+  using ((select public.is_member()) and created_by = (select auth.uid()));
 
 -- favorites: ieder lid alleen zijn eigen rijen
 drop policy if exists "favorites eigen lezen"       on public.favorites;

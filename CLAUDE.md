@@ -84,7 +84,7 @@ create table favorites (
 
 Beveiliging (Row Level Security op alle tabellen):
 
-- `recipes`: ingelogde gebruikers mogen lezen, toevoegen, wijzigen en verwijderen.
+- `recipes`: leden mogen lezen en toevoegen; alleen wie het recept plaatste (`created_by`) mag het wijzigen en verwijderen.
 - `favorites`: iedere gebruiker mag alleen zijn eigen rijen lezen en schrijven.
 - `profiles`: iedereen die is ingelogd mag lezen; ieder schrijft alleen zijn eigen profiel.
 - Storage-bucket `recipe-photos`: alleen ingelogde gebruikers mogen uploaden en verwijderen. Lezen is openbaar, zodat foto's eenvoudig laden; wie de exacte link heeft, kan een foto zien.

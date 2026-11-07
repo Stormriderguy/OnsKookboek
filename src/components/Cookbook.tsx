@@ -199,6 +199,8 @@ export function Cookbook({ uid, myName }: Props) {
   }, [openId, open, loaded, editing]);
 
   const n = recipes.length;
+  // With filters or a search term, count only the recipes that match.
+  const shown = visible.length;
 
   return (
     <>
@@ -207,7 +209,9 @@ export function Cookbook({ uid, myName }: Props) {
           <div className="bar">
             <div className="brand">
               <h1>Ons Kookboek</h1>
-              <span className="count">{loaded ? (n === 1 ? "1 recept" : `${n} recepten`) : ""}</span>
+              <span className="count" aria-live="polite">
+                {loaded ? (shown === 1 ? "1 recept" : `${shown} recepten`) : ""}
+              </span>
             </div>
             <div className="search">
               <SearchIcon />
@@ -307,10 +311,11 @@ export function Cookbook({ uid, myName }: Props) {
       {open && !editing && (
         <RecipeDetail
           recipe={open}
+          canEdit={open.created_by === uid}
           names={names}
           fav={favs.has(open.id)}
           onFav={() => toggleFav(open.id)}
-          onEdit={() => setEditing({ recipe: open })}
+          onEdit={() => open.created_by === uid && setEditing({ recipe: open })}
           onDelete={() => deleteRecipe(open)}
           onClose={() => setOpenId(null)}
           onNeedNames={loadNames}
