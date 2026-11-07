@@ -49,8 +49,9 @@ Tesseract is uit de app gehaald. De scan loopt nu via Ollama op de eigen Linuxco
 - `scanner/`: de poortwachter (`server.mjs`, Node zonder extra pakketten), een systemd-unit, `scanner.env.example` en een `README.md` met de installatiestappen. Hij controleert het Supabase-token via `rpc/is_member`, houdt een wachtrij bij (1 scan tegelijk, maximaal 10 wachtend) en een daglimiet (30 per persoon; een scan die mislukt omdat Ollama uit staat, telt niet mee). Foto's mogen maximaal 8 MB zijn, CORS staat alleen open voor de app, en foto's worden niet bewaard.
 - Verbinding: Tailscale Funnel (`tailscale funnel --bg 8787`) → https-adres `*.ts.net`. Ollama blijft op 127.0.0.1.
 - App: `src/aiScan.ts` (versturen en elke 2 seconden de stand opvragen, maximaal 10 minuten) en `normalizeParsed` in `src/parseRecipe.ts`. Is de scanner onbereikbaar of het limiet bereikt, dan meldt de app: "Er kunnen vandaag geen foto's meer worden verwerkt." Zonder `VITE_SCAN_URL` is er geen scanknop.
-- Getest: de poortwachter met een nep-Ollama (login, lidmaatschap, CORS, limieten, wachtrij), en de hele keten lokaal met de echte Supabase-login. **Nog niet getest met het echte model op de Linuxcomputer.**
-- Nog te doen door de gebruiker: de Linuxcomputer inrichten volgens `scanner/README.md`, `VITE_SCAN_URL` in Vercel invullen en opnieuw online zetten. Daarna de omeletfoto testen met `qwen2.5vl:3b` en eventueel `qwen2.5vl:7b`.
+- De Linuxcomputer is ingericht: `https://santifort-hp-z240-sff-workstation.tail7c0a15.ts.net`, model `qwen2.5vl:7b`. Die staat ook in Vercel als `VITE_SCAN_URL`.
+- Getest op 7 nov 2026 met de omeletfoto (twee kolommen): alle 11 ingrediënten goed, de bereiding volledig maar in 15 losse zinnen in plaats van 3 alinea's, en één leesfout ("scheep"). Duur: ±5,5 minuten. Daarvoor moest Ollama gestreamd worden (de fetch van Node stopt na 5 minuten zonder antwoord).
+- Mogelijke verbeteringen: `qwen2.5vl:3b` proberen voor snelheid, of de opdracht laten vragen om alinea's als stappen.
 
 ## Nog te controleren bij de gebruiker
 - Is de laatste versie van `supabase/schema.sql` gedraaid? Daarin zitten de regel dat alleen de plaatser bewerkt en verwijdert, en de opgeslagen namen. Controleren kan met de publishable key: `GET /rest/v1/recipes?select=created_by_name` geeft `[]` (en geen foutmelding) als het script gedraaid is.

@@ -116,4 +116,4 @@ sudo ufw enable
 - Herstarten na een wijziging: `sudo systemctl restart kookboek-scanner`
 - Nieuwe versie van `server.mjs`: opnieuw naar `/opt/kookboek-scanner/` kopiëren en herstarten.
 - Funnel tijdelijk uitzetten: `sudo tailscale funnel reset` (weer aan met `sudo tailscale funnel --bg 8787`). De app meldt dan dat er vandaag geen foto's meer kunnen worden verwerkt.
-- Een scan duurt op de processor ongeveer 1 tot 3 minuten. De eerste scan na een tijd niets doen duurt langer, omdat het model dan eerst wordt geladen.
+- Een scan duurt op de processor ongeveer 5 à 6 minuten met qwen2.5vl:7b, en ongeveer de helft met qwen2.5vl:3b. De eerste scan na een tijd niets doen duurt langer, omdat het model dan eerst wordt geladen.

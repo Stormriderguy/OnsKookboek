@@ -93,7 +93,7 @@ Elke push naar de branch `main` op GitHub zet Vercel automatisch online. In Verc
 In het receptformulier staat de knop **Recept scannen van foto**. De app stuurt de foto naar een AI-model (Ollama) op jullie eigen Linuxcomputer. Dat model leest het recept, ook bij pagina's met twee kolommen, en vult de naam, het aantal personen, de tijd, de ingrediënten en de stappen in. Controleer het resultaat altijd even.
 
 - Het instellen van die computer staat in [scanner/README.md](scanner/README.md).
-- Een scan duurt ongeveer 1 tot 3 minuten. Als iemand anders al aan het scannen is, wacht je even in de rij.
+- Een scan duurt een paar minuten (met het model qwen2.5vl:7b ongeveer 5 à 6 minuten). Als iemand anders al aan het scannen is, wacht je even in de rij.
 - Iedereen kan maximaal 30 foto's per dag laten lezen. Staat de computer uit, of is het maximum bereikt, dan meldt de app: "Er kunnen vandaag geen foto's meer worden verwerkt."
 - Onder **Herkende tekst bekijken** staat alles wat gelezen is.
 

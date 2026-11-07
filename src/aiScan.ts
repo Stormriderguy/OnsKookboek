@@ -70,7 +70,7 @@ export async function scanWithAI(file: File, onStatus: (label: string) => void):
     if (job.status === "klaar") return normalizeParsed(job.result);
     if (job.status === "fout") throw new ScanError(job.error === "onbereikbaar" ? "weg" : "mislukt");
     if (job.status === "wacht") onStatus(`Wachten op de scanner${job.plek && job.plek > 1 ? ` (${job.plek}e in de rij)` : ""}… ${elapsed}`);
-    else onStatus(`Recept lezen, dit duurt 1 à 3 minuten… ${elapsed}`);
+    else onStatus(`Recept lezen, dit duurt een paar minuten… ${elapsed}`);
   }
   throw new ScanError("weg");
 }
