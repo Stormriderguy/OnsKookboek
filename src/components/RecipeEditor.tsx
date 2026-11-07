@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { BUCKET, photoUrl, supabase } from "../supabase";
 import { MEALS, TASTES, UNITS, type Recipe, type RecipeInput } from "../types";
 import { shrink } from "../util";
-import { XIcon } from "./Icons";
+import { CameraIcon, XIcon } from "./Icons";
 import { Sheet } from "./Sheet";
 
 type IngRow = { key: string; qty: string; unit: string; name: string };
@@ -141,6 +141,51 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
     onSaved(data as Recipe, isNew);
   }
 
+  // Scan: read a photo of a paper recipe and fill in what's still empty.
+  const [scan, setScan] = useState<{ busy: boolean; pct: number; label: string; note: string; text: string }>({
+    busy: false,
+    pct: 0,
+    label: "",
+    note: "",
+    text: "",
+  });
+
+  async function scanPhoto(file: File) {
+    setScan({ busy: true, pct: 0, label: "Voorbereiden…", note: "", text: "" });
+    try {
+      const [{ readTextFromPhoto }, { parseRecipe }] = await Promise.all([import("../ocr"), import("../parseRecipe")]);
+      const text = await readTextFromPhoto(file, (fraction, label) =>
+        setScan((s) => ({ ...s, pct: Math.round(fraction * 100), label })),
+      );
+      const p = parseRecipe(text);
+      if (p.title && !title.trim()) setTitle(p.title);
+      if (p.description && !description.trim()) setDescription(p.description);
+      if (p.servings) setServings(String(p.servings));
+      if (p.minutes && !minutes) setMinutes(String(p.minutes));
+      if (p.ingredients.length) {
+        setIngs((rows) => [
+          ...rows.filter((r) => r.qty.trim() || r.name.trim()),
+          ...p.ingredients.map((i) => ({ key: newKey(), qty: i.qty, unit: i.unit, name: i.name })),
+        ]);
+      }
+      if (p.steps.length) {
+        setSteps((rows) => [...rows.filter((s) => s.text.trim()), ...p.steps.map((text) => ({ key: newKey(), text }))]);
+      }
+      const found = p.ingredients.length + p.steps.length;
+      setScan({
+        busy: false,
+        pct: 100,
+        label: "",
+        text,
+        note: found
+          ? `Klaar: ${p.ingredients.length} ingrediënten en ${p.steps.length} stappen gevonden. Controleer alles even, de herkenning maakt soms fouten.`
+          : "Er is weinig herkend. Probeer een scherpere foto: recht van boven, met goed licht en zonder schaduw.",
+      });
+    } catch {
+      setScan({ busy: false, pct: 0, label: "", text: "", note: "Het scannen is niet gelukt. Controleer je internetverbinding (de eerste keer wordt de Nederlandse taal gedownload) en probeer het opnieuw." });
+    }
+  }
+
   const toggle = (set: Set<string>, v: string, update: (s: Set<string>) => void) => {
     const n = new Set(set);
     if (n.has(v)) n.delete(v);
@@ -160,6 +205,44 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
       </div>
 
       <div className="sec">
+        <div className="scanbox">
+          <label className={"btn scan-btn" + (scan.busy ? " busy" : "")} aria-disabled={scan.busy}>
+            <CameraIcon />
+            {scan.busy ? "Bezig met scannen…" : "Recept scannen van foto"}
+            <input
+              className="sr-only"
+              type="file"
+              accept="image/*"
+              disabled={scan.busy}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) scanPhoto(file);
+              }}
+            />
+          </label>
+          {scan.busy ? (
+            <div className="scan-progress" role="status">
+              <div className="bar-track">
+                <div className="bar-fill" style={{ width: `${scan.pct}%` }} />
+              </div>
+              <span className="hint">
+                {scan.label} {scan.pct > 0 ? `${scan.pct}%` : ""}
+              </span>
+            </div>
+          ) : scan.note ? (
+            <p className="scan-note" role="status">{scan.note}</p>
+          ) : (
+            <span className="hint">Maak een foto van een recept op papier. De velden hieronder worden zo goed mogelijk ingevuld.</span>
+          )}
+          {scan.text && !scan.busy && (
+            <details className="scan-text">
+              <summary>Herkende tekst bekijken</summary>
+              <pre>{scan.text}</pre>
+            </details>
+          )}
+        </div>
+
         <div className="field">
           <label htmlFor="title-in">Naam van het recept</label>
           <input

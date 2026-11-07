@@ -210,6 +210,20 @@ textarea.in { resize: vertical; min-height: 70px }
 .gate-card .btn { justify-content: center }
 .ok { background: var(--basil-soft); color: var(--ink); border-radius: 10px; padding: 10px 14px; font-size: .92rem }
 
+/* Scan a paper recipe */
+.scanbox { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1.5px dashed var(--basil); border-radius: var(--r); background: var(--basil-soft) }
+.scan-btn { align-self: flex-start; cursor: pointer; background: var(--card); border-color: var(--basil); color: var(--basil) }
+.scan-btn:focus-within { outline: 2px solid var(--basil); outline-offset: 2px }
+.scan-btn.busy { opacity: .7; cursor: progress }
+.scan-progress { display: flex; flex-direction: column; gap: 6px }
+.bar-track { height: 8px; border-radius: 999px; background: var(--card); overflow: hidden }
+.bar-fill { height: 100%; background: var(--basil); transition: width .2s ease }
+.scan-note { margin: 0; font-size: .88rem }
+.scan-text summary { cursor: pointer; font-size: .85rem; color: var(--muted) }
+.scan-text pre { white-space: pre-wrap; font: inherit; font-size: .82rem; max-height: 220px; overflow: auto; background: var(--card); border-radius: 10px; padding: 10px; margin: 8px 0 0 }
+@media (max-width: 560px) { .scan-btn { align-self: stretch; justify-content: center } }
+@media (prefers-reduced-motion: reduce) { .bar-fill { transition: none } }
+
 /* iPhone and iPad zoom in on fields with text smaller than 16px; prevent that */
 @supports (-webkit-touch-callout: none) {
   input, select, textarea, .search input { font-size: 16px }

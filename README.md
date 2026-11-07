@@ -87,6 +87,14 @@ Nodig: [Node.js](https://nodejs.org) (LTS).
 De recepten en foto's staan in Supabase, niet in de code. Wijzigingen aan de app raken de gegevens dus nooit.
 Elke push naar de branch `main` op GitHub zet Vercel automatisch online. In Vercel kun je bij **Deployments** met één klik terug naar een eerdere versie (**Promote** / **Instant Rollback**).
 
+## Recept scannen van een foto
+
+In het receptformulier staat de knop **Recept scannen van foto**. De app leest de tekst van een foto van een papieren recept en vult naam, personen, tijd, ingrediënten en stappen zo goed mogelijk in. Controleer het resultaat altijd even.
+
+- Het lezen gebeurt op het apparaat zelf (Tesseract), gratis en zonder account. De eerste keer wordt de Nederlandse taal gedownload (een paar MB).
+- Werkt het best met gedrukte recepten: recht van boven, goed licht, geen schaduw. Handschrift wordt slecht herkend.
+- Onder **Herkende tekst bekijken** staat alles wat gelezen is, om ontbrekende stukjes over te nemen.
+
 ## Goed om te weten
 
 - Foto's worden in de browser verkleind (maximaal 1600 px, JPEG) voordat ze worden geüpload. Zo blijft het ruim binnen de gratis 1 GB opslag van Supabase.
