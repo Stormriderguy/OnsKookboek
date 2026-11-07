@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
-import { Login } from "./components/Login";
+import { LOGIN_DOMAIN, Login } from "./components/Login";
 import { NameSetup } from "./components/NameSetup";
 import { Cookbook } from "./components/Cookbook";
 
@@ -64,6 +64,12 @@ export default function App() {
     );
   }
   if (!session || !uid) return <Login />;
-  if (myName === null) return <NameSetup uid={uid} onDone={setMyName} onSignOut={signOut} />;
+  if (myName === null) {
+    // "riet@onskookboek.app" → "Riet"
+    const email = session.user.email ?? "";
+    const local = email.endsWith("@" + LOGIN_DOMAIN) ? email.split("@")[0].replace(/-/g, " ") : "";
+    const suggestion = local ? local[0].toUpperCase() + local.slice(1) : "";
+    return <NameSetup uid={uid} suggestion={suggestion} onDone={setMyName} onSignOut={signOut} />;
+  }
   return <Cookbook uid={uid} myName={myName ?? ""} onSignOut={signOut} />;
 }

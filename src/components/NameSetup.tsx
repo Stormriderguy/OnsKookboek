@@ -2,8 +2,10 @@ import { useState, type FormEvent } from "react";
 import { supabase } from "../supabase";
 
 /** Asked once, on the first login: the name others see at "Toegevoegd door". */
-export function NameSetup({ uid, onDone, onSignOut }: { uid: string; onDone: (name: string) => void; onSignOut: () => void }) {
-  const [name, setName] = useState("");
+type Props = { uid: string; suggestion?: string; onDone: (name: string) => void; onSignOut: () => void };
+
+export function NameSetup({ uid, suggestion = "", onDone, onSignOut }: Props) {
+  const [name, setName] = useState(suggestion);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 

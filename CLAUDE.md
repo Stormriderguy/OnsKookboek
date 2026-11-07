@@ -39,8 +39,8 @@ Alle tekst in de app is Nederlands.
 
 ## Inloggen
 
-- Inloggen met een e-maillink (magic link, zonder wachtwoord) via Supabase Auth.
-- Alleen uitgenodigde mensen komen erin. Zet in Supabase "Allow new users to sign up" uit; de eigenaar nodigt mensen uit via het Supabase-dashboard (Authentication → Users → Invite).
+- Inloggen met een naam en een persoonlijke code die de eigenaar uitdeelt (geen e-mails). Technisch: Supabase Auth met e-mail + wachtwoord, waarbij de naam wordt omgezet naar `naam@onskookboek.app` en de code het wachtwoord is.
+- Alleen mensen die de eigenaar toevoegt komen erin. Zet in Supabase "Allow new users to sign up" uit; de eigenaar maakt gebruikers aan via Authentication → Users → Add user (Auto Confirm aan).
 - Iedereen die is ingelogd mag alle recepten zien, toevoegen, wijzigen en verwijderen.
 - Bij de eerste keer inloggen vraagt de app om een weergavenaam. Die wordt opgeslagen in `profiles` en getoond bij "Toegevoegd door".
 
@@ -128,7 +128,7 @@ Zet een `.env.example` in de repo. Echte sleutels horen niet in Git.
 
 ## Klaar wanneer
 
-- [ ] Inloggen met een e-maillink werkt, en wie niet is uitgenodigd komt er niet in.
+- [ ] Inloggen met naam en code werkt, en wie niet is toegevoegd komt er niet in.
 - [ ] Een recept met ingrediënten, stappen en twee foto's toevoegen, bewerken en verwijderen werkt.
 - [ ] Een tweede gebruiker ziet een nieuw recept zonder te herladen.
 - [ ] Favorieten zijn per persoon en blijven bewaard na opnieuw inloggen.
