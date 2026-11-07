@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { SCAN_URL, ScanError, scanWithAI } from "../aiScan";
+import { parsedAsText } from "../parseRecipe";
 import { BUCKET, photoUrl, supabase } from "../supabase";
 import { MEALS, TASTES, UNITS, type Recipe, type RecipeInput } from "../types";
 import { shrink } from "../util";
@@ -142,22 +144,18 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
   }
 
   // Scan: read a photo of a paper recipe and fill in what's still empty.
-  const [scan, setScan] = useState<{ busy: boolean; pct: number; label: string; note: string; text: string }>({
+  const [scan, setScan] = useState<{ busy: boolean; label: string; note: string; text: string }>({
     busy: false,
-    pct: 0,
     label: "",
     note: "",
     text: "",
   });
 
   async function scanPhoto(file: File) {
-    setScan({ busy: true, pct: 0, label: "Voorbereiden…", note: "", text: "" });
+    setScan({ busy: true, label: "Voorbereiden…", note: "", text: "" });
     try {
-      const [{ readTextFromPhoto }, { parseRecipe }] = await Promise.all([import("../ocr"), import("../parseRecipe")]);
-      const text = await readTextFromPhoto(file, (fraction, label) =>
-        setScan((s) => ({ ...s, pct: Math.round(fraction * 100), label })),
-      );
-      const p = parseRecipe(text);
+      const p = await scanWithAI(file, (label) => setScan((s) => ({ ...s, label })));
+      const text = parsedAsText(p);
       if (p.title && !title.trim()) setTitle(p.title);
       if (p.description && !description.trim()) setDescription(p.description);
       if (p.servings) setServings(String(p.servings));
@@ -174,15 +172,22 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
       const found = p.ingredients.length + p.steps.length;
       setScan({
         busy: false,
-        pct: 100,
         label: "",
         text,
         note: found
           ? `Klaar: ${p.ingredients.length} ingrediënten en ${p.steps.length} stappen gevonden. Controleer alles even, de herkenning maakt soms fouten.`
           : "Er is weinig herkend. Probeer een scherpere foto: recht van boven, met goed licht en zonder schaduw.",
       });
-    } catch {
-      setScan({ busy: false, pct: 0, label: "", text: "", note: "Het scannen is niet gelukt. Controleer je internetverbinding (de eerste keer wordt de Nederlandse taal gedownload) en probeer het opnieuw." });
+    } catch (e) {
+      const unreadable = e instanceof ScanError && e.kind === "mislukt";
+      setScan({
+        busy: false,
+        label: "",
+        text: "",
+        note: unreadable
+          ? "Deze foto kon niet worden gelezen. Probeer een scherpere foto: recht van boven, met goed licht en zonder schaduw."
+          : "Er kunnen vandaag geen foto's meer worden verwerkt. Probeer het morgen opnieuw.",
+      });
     }
   }
 
@@ -205,7 +210,7 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
       </div>
 
       <div className="sec">
-        <div className="scanbox">
+        {SCAN_URL && <div className="scanbox">
           <label className={"btn scan-btn" + (scan.busy ? " busy" : "")} aria-disabled={scan.busy}>
             <CameraIcon />
             {scan.busy ? "Bezig met scannen…" : "Recept scannen van foto"}
@@ -224,11 +229,9 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
           {scan.busy ? (
             <div className="scan-progress" role="status">
               <div className="bar-track">
-                <div className="bar-fill" style={{ width: `${scan.pct}%` }} />
+                <div className="bar-fill bar-busy" />
               </div>
-              <span className="hint">
-                {scan.label} {scan.pct > 0 ? `${scan.pct}%` : ""}
-              </span>
+              <span className="hint">{scan.label}</span>
             </div>
           ) : scan.note ? (
             <p className="scan-note" role="status">{scan.note}</p>
@@ -241,7 +244,7 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
               <pre>{scan.text}</pre>
             </details>
           )}
-        </div>
+        </div>}
 
         <div className="field">
           <label htmlFor="title-in">Naam van het recept</label>

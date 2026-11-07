@@ -1,0 +1,32 @@
+[Unit]
+Description=Ons Kookboek scan-poortwachter
+After=network-online.target ollama.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kookboek
+Group=kookboek
+EnvironmentFile=/etc/kookboek-scanner/scanner.env
+ExecStart=/usr/bin/node /opt/kookboek-scanner/server.mjs
+Restart=on-failure
+RestartSec=5
+
+# Afschermen: de dienst mag niets op de schijf schrijven en geen rechten bijkrijgen.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6
+CapabilityBoundingSet=
+MemoryMax=1G
+
+[Install]
+WantedBy=multi-user.target

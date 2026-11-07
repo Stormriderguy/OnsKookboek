@@ -218,6 +218,9 @@ textarea.in { resize: vertical; min-height: 70px }
 .scan-progress { display: flex; flex-direction: column; gap: 6px }
 .bar-track { height: 8px; border-radius: 999px; background: var(--card); overflow: hidden }
 .bar-fill { height: 100%; background: var(--basil); transition: width .2s ease }
+.bar-busy { width: 35%; border-radius: 999px; animation: bar-busy 1.4s ease-in-out infinite }
+@keyframes bar-busy { from { transform: translateX(-100%) } to { transform: translateX(290%) } }
+@media (prefers-reduced-motion: reduce) { .bar-busy { animation: none; width: 100%; opacity: .5 } }
 .scan-note { margin: 0; font-size: .88rem }
 .scan-text summary { cursor: pointer; font-size: .85rem; color: var(--muted) }
 .scan-text pre { white-space: pre-wrap; font: inherit; font-size: .82rem; max-height: 220px; overflow: auto; background: var(--card); border-radius: 10px; padding: 10px; margin: 8px 0 0 }

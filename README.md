@@ -61,6 +61,7 @@ De code staat in [github.com/Stormriderguy/OnsKookboek](https://github.com/Storm
 2. Ga naar **Settings → Environment Variables** en voeg toe, allebei als type **Config**, voor alle omgevingen:
    - `VITE_SUPABASE_URL`: de Project URL uit Supabase (knop **Connect**)
    - `VITE_SUPABASE_ANON_KEY` (of `VITE_SUPABASE_PUBLISHABLE_KEY`, zoals Supabase hem noemt): de **publishable**- of **anon**-sleutel uit Supabase
+   - `VITE_SCAN_URL` (optioneel): het adres van de scanner op jullie eigen computer, zie [scanner/README.md](scanner/README.md). Laat je dit leeg, dan heeft de app geen scanknop.
 3. Start een nieuwe deploy (**Deployments → ⋯ → Redeploy**), zodat de sleutels worden meegenomen.
 
 Gebruik nooit de `service_role`- of `secret`-sleutel: die geeft volledige toegang tot de database.
@@ -89,11 +90,12 @@ Elke push naar de branch `main` op GitHub zet Vercel automatisch online. In Verc
 
 ## Recept scannen van een foto
 
-In het receptformulier staat de knop **Recept scannen van foto**. De app leest de tekst van een foto van een papieren recept en vult naam, personen, tijd, ingrediënten en stappen zo goed mogelijk in. Controleer het resultaat altijd even.
+In het receptformulier staat de knop **Recept scannen van foto**. De app stuurt de foto naar een AI-model (Ollama) op jullie eigen Linuxcomputer. Dat model leest het recept, ook bij pagina's met twee kolommen, en vult de naam, het aantal personen, de tijd, de ingrediënten en de stappen in. Controleer het resultaat altijd even.
 
-- Het lezen gebeurt op het apparaat zelf (Tesseract), gratis en zonder account. De eerste keer wordt de Nederlandse taal gedownload (een paar MB).
-- Werkt het best met gedrukte recepten: recht van boven, goed licht, geen schaduw. Handschrift wordt slecht herkend.
-- Onder **Herkende tekst bekijken** staat alles wat gelezen is, om ontbrekende stukjes over te nemen.
+- Het instellen van die computer staat in [scanner/README.md](scanner/README.md).
+- Een scan duurt ongeveer 1 tot 3 minuten. Als iemand anders al aan het scannen is, wacht je even in de rij.
+- Iedereen kan maximaal 30 foto's per dag laten lezen. Staat de computer uit, of is het maximum bereikt, dan meldt de app: "Er kunnen vandaag geen foto's meer worden verwerkt."
+- Onder **Herkende tekst bekijken** staat alles wat gelezen is.
 
 ## Goed om te weten
 
