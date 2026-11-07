@@ -70,6 +70,10 @@ language plpgsql
 set search_path = ''
 as $$
 begin
+  -- Tijdens het overzetten van een account naar een nieuw apparaat niets aanpassen.
+  if coalesce(current_setting('ons.reassigning', true), '') = 'on' then
+    return new;
+  end if;
   new.updated_at := now();
   new.updated_by := auth.uid();
   new.created_at := old.created_at;  -- aanmaakgegevens blijven altijd gelijk
@@ -118,7 +122,9 @@ begin
 end;
 $$;
 
--- Binnenkomen: code controleren en een eigen naam kiezen.
+-- Binnenkomen: code controleren en je voor- en achternaam invullen.
+-- Bestaat die naam al (bijvoorbeeld op een nieuw apparaat), dan neem je dat account over,
+-- met favorieten en de recepten die op die naam staan.
 -- Geeft {ok: true, name} terug, of {ok: false, error}. Na 10 foute codes is dit apparaat geblokkeerd.
 create or replace function public.join_cookbook(p_code text, p_name text)
 returns jsonb
@@ -131,6 +137,7 @@ declare
   clean_code text := upper(regexp_replace(coalesce(p_code, ''), '[^A-Za-z0-9]', '', 'g'));
   clean_name text := btrim(regexp_replace(coalesce(p_name, ''), '\s+', ' ', 'g'));
   existing text;
+  old_id uuid;
 begin
   if uid is null then
     raise exception 'not_signed_in';
@@ -151,11 +158,21 @@ begin
     return jsonb_build_object('ok', false, 'error', 'invalid_code');
   end if;
 
-  if char_length(clean_name) < 1 or char_length(clean_name) > 40 then
+  if char_length(clean_name) < 3 or char_length(clean_name) > 80 then
     return jsonb_build_object('ok', false, 'error', 'invalid_name');
   end if;
-  if exists (select 1 from public.profiles where lower(display_name) = lower(clean_name)) then
-    return jsonb_build_object('ok', false, 'error', 'name_taken');
+
+  -- Deze naam bestaat al: zet dat account over naar dit apparaat.
+  select id into old_id from public.profiles where lower(display_name) = lower(clean_name);
+  if old_id is not null then
+    perform set_config('ons.reassigning', 'on', true);
+    update public.favorites set user_id = uid where user_id = old_id;
+    update public.recipes set created_by = uid where created_by = old_id;
+    update public.recipes set updated_by = uid where updated_by = old_id;
+    update public.profiles set id = uid where id = old_id returning display_name into existing;
+    perform set_config('ons.reassigning', 'off', true);
+    delete from public.join_attempts where user_id = uid;
+    return jsonb_build_object('ok', true, 'name', existing, 'returning', true);
   end if;
 
   begin

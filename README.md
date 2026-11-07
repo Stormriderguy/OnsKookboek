@@ -14,7 +14,7 @@ De app draait op **Vercel**. De recepten, foto's en het inloggen zitten in **Sup
 
 ### 2. Toegang met één gezamenlijke code
 
-Er is **één code** voor het hele kookboek. Jij geeft die aan familie en vrienden. Wie de code heeft, opent de app, vult de code in en **kiest zelf een naam**. Daarna blijft diegene op dat apparaat ingelogd; er is geen uitlogknop. Er zijn geen e-mails of wachtwoorden.
+Er is **één code** voor het hele kookboek. Jij geeft die aan familie en vrienden. Wie de code heeft, opent de app en vult de code, de **voornaam** en de **achternaam** in. Daarna blijft diegene op dat apparaat ingelogd; er is geen uitlogknop. Er zijn geen e-mails of wachtwoorden.
 
 **Eenmalig instellen** in **Authentication → Sign In / Providers**:
 
@@ -41,7 +41,9 @@ select display_name from public.profiles order by display_name;
 
 **Goed om te weten**:
 
-- De inlog hoort bij het apparaat en de browser. Op een nieuw apparaat, of na het wissen van de browsergegevens, vult iemand de code opnieuw in. De oude naam is dan nog bezet: kies een andere naam, of verwijder eerst de oude gebruiker zodat de naam weer vrij is.
+- De inlog hoort bij het apparaat en de browser. Op een nieuw apparaat, of na het wissen van de browsergegevens, vult iemand gewoon opnieuw de code en **dezelfde** voor- en achternaam in. Dan komt diegene terug in zijn eigen account, met favorieten en de recepten op zijn naam. Op het oude apparaat moet diegene daarna opnieuw de code invullen.
+- Dezelfde volledige naam betekent dus hetzelfde account. Wie de code heeft én iemands voor- en achternaam kent, kan als die persoon binnenkomen.
+- **Een naam aanpassen** (bijvoorbeeld een tikfout): `update public.profiles set display_name = 'Riet de Vries' where display_name = 'Riet de vries';`
 - **iPhone/iPad**: zet de app eerst op het beginscherm en vul de code dáár in. Safari en de app op het beginscherm onthouden je los van elkaar, en Safari wist gegevens van sites die je een week niet hebt bezocht.
 - Na 10 foute codes op een apparaat blokkeert de app verdere pogingen vanaf dat apparaat.
 

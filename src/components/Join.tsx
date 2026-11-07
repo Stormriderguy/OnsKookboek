@@ -8,18 +8,27 @@ function isIosBrowser(): boolean {
   return ios && !standalone;
 }
 
-/** One-time entry: a code from the owner proves access, the person picks their own name. */
+/**
+ * Entry with the shared code plus first and last name.
+ * Entering a name that already exists brings back that person's account (new device, cleared browser).
+ */
 export function Join({ onJoined }: { onJoined: (name: string) => void }) {
   const db = supabase!;
   const [code, setCode] = useState("");
-  const [name, setName] = useState("");
+  const [first, setFirst] = useState("");
+  const [last, setLast] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!code.trim() || !name.trim()) {
-      setErr("Vul de code en je naam in.");
+    const name = `${first.trim()} ${last.trim()}`.trim();
+    if (!code.trim()) {
+      setErr("Vul de code in.");
+      return;
+    }
+    if (!first.trim() || !last.trim()) {
+      setErr("Vul je voornaam en je achternaam in.");
       return;
     }
     setErr("");
@@ -46,13 +55,13 @@ export function Join({ onJoined }: { onJoined: (name: string) => void }) {
       if (joined.error || !result) {
         setErr("Het is niet gelukt. Controleer je verbinding en probeer het opnieuw.");
       } else if (result.ok) {
-        onJoined(result.name || name.trim());
+        onJoined(result.name || name);
       } else {
         setErr(
           {
             invalid_code: "Deze code klopt niet. Controleer de code die je hebt gekregen.",
-            name_taken: "Deze naam is al in gebruik. Kies een andere naam.",
-            invalid_name: "Kies een naam van maximaal 40 tekens.",
+            name_taken: "Dat lukte net niet. Probeer het nog een keer.",
+            invalid_name: "Vul je voornaam en je achternaam in.",
             too_many_attempts: "Te veel foute codes op dit apparaat. Vraag de eigenaar om hulp.",
           }[result.error ?? ""] ?? "Het is niet gelukt. Probeer het opnieuw.",
         );
@@ -66,7 +75,7 @@ export function Join({ onJoined }: { onJoined: (name: string) => void }) {
     <div className="gate">
       <form className="gate-card" onSubmit={submit} noValidate>
         <h1>Ons Kookboek</h1>
-        <p>Vul de code van het kookboek in die je van ons hebt gekregen, en kies de naam waaronder je recepten toevoegt.</p>
+        <p>Vul de code van het kookboek in die je van ons hebt gekregen, en je voor- en achternaam.</p>
         {isIosBrowser() && (
           <p className="note">
             Op een iPhone of iPad: zet de app eerst op je beginscherm (Delen → <strong>Zet op beginscherm</strong>) en vul de code dáár
@@ -86,20 +95,36 @@ export function Join({ onJoined }: { onJoined: (name: string) => void }) {
             onChange={(e) => setCode(e.target.value)}
           />
         </div>
-        <div className="field">
-          <label htmlFor="join-name">Je naam</label>
-          <input
-            className="in"
-            id="join-name"
-            autoComplete="nickname"
-            autoCapitalize="words"
-            maxLength={40}
-            placeholder="Bijv. Oma Riet"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <span className="hint">Deze naam staat bij de recepten die je toevoegt. Je kiest hem één keer.</span>
+        <div className="row2">
+          <div className="field">
+            <label htmlFor="join-first">Voornaam</label>
+            <input
+              className="in"
+              id="join-first"
+              autoComplete="given-name"
+              autoCapitalize="words"
+              maxLength={40}
+              value={first}
+              onChange={(e) => setFirst(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="join-last">Achternaam</label>
+            <input
+              className="in"
+              id="join-last"
+              autoComplete="family-name"
+              autoCapitalize="words"
+              maxLength={40}
+              value={last}
+              onChange={(e) => setLast(e.target.value)}
+            />
+          </div>
         </div>
+        <span className="hint">
+          Je naam staat bij de recepten die je toevoegt. Was je al eerder binnen, bijvoorbeeld op een ander apparaat? Vul dan dezelfde
+          naam in, dan krijg je je favorieten terug.
+        </span>
         {err && <p className="err" role="alert">{err}</p>}
         <button className="btn primary" type="submit" disabled={busy}>
           {busy ? "Even geduld…" : "Naar het kookboek"}
