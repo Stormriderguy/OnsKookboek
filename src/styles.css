@@ -55,12 +55,15 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(1.6rem, 4vw
 .btn.danger { color: var(--tomato); border-color: var(--tomato-soft); background: var(--tomato-soft) }
 .btn.ghost { background: transparent; border-color: transparent }
 .btn:disabled { opacity: .55; cursor: default }
-/* Phone: brand + menu on the first row, search + "+ Recept" on the second */
+/* Phone: title on top, then "Filters" and "+ Recept" side by side, then the search bar full width */
 @media (max-width: 560px) {
-  .brand { order: 0 }
-  .menu-wrap { order: 1 }
-  .search { order: 2; flex-basis: 160px }
-  .add-btn { order: 3 }
+  header.top .wrap { gap: 10px }
+  .bar { gap: 10px }
+  .brand { order: 0; flex: 1 1 100%; margin-right: 0 }
+  .menu-wrap { order: 1; flex: 1 1 0; margin-left: 0 }
+  .menu-btn { width: 100%; justify-content: center }
+  .add-btn { order: 2; flex: 1 1 0; justify-content: center }
+  .search { order: 3; flex: 1 1 100% }
 }
 
 .flabel { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700 }
@@ -83,7 +86,17 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(1.6rem, 4vw
 .menu-who strong { color: var(--ink) }
 .menu-sec { display: flex; flex-direction: column; gap: 8px }
 .menu-foot { display: flex; justify-content: space-between; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); position: sticky; bottom: -16px; background: var(--card); margin-bottom: -16px; padding-bottom: 16px }
-@media (max-width: 380px) { .menu-label { display: none } }
+/* Phone: the menu spans the screen, just below the buttons (top is set from the code) */
+.menu-panel.phone { position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: auto; z-index: 30 }
+
+/* Collapsible headings in the phone menu */
+.sec-toggle { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 4px 0; border: 0; background: none; text-align: left }
+.sec-toggle .sec-sum { flex: 1; min-width: 0; font-size: .85rem; color: var(--basil); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.sec-toggle .plus { margin-left: auto; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; font-size: 1.1rem; font-weight: 700; color: var(--ink); flex: none }
+.menu-panel.phone .menu-sec { gap: 4px }
+.menu-panel.phone .menu-sec + .menu-sec { border-top: 1px solid var(--line); padding-top: 4px }
+.menu-panel.phone { gap: 8px }
+.menu-panel.phone .menu-sec .chips { padding-bottom: 10px }
 
 .active-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px }
 .active-filters .btn { padding: 6px 10px; font-size: .88rem; color: var(--muted) }

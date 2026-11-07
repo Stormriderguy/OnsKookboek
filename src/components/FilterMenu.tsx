@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { MEALS, TASTES, type SortKey } from "../types";
 import { FilterIcon } from "./Icons";
 
@@ -21,12 +21,57 @@ type Props = {
   onClear: () => void;
 };
 
+const SORT_LABELS: Record<SortKey, string> = { new: "Nieuwste eerst", az: "A–Z", time: "Snelste eerst" };
+const PHONE = "(max-width: 560px)";
+
+function useMedia(query: string): boolean {
+  const [match, setMatch] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const onChange = () => setMatch(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [query]);
+  return match;
+}
+
+/** A heading with its choices. On a phone the choices fold away behind a plus. */
+function Section({ title, summary, collapsible, children }: { title: string; summary?: string; collapsible: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  if (!collapsible) {
+    return (
+      <div className="menu-sec">
+        <span className="flabel">{title}</span>
+        {children}
+      </div>
+    );
+  }
+  return (
+    <div className="menu-sec">
+      <button className="sec-toggle" type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span className="flabel">{title}</span>
+        <span className="sec-sum">{summary}</span>
+        <span className="plus" aria-hidden="true">{open ? "−" : "+"}</span>
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
 /** The filters and sorting, in a menu that drops down from the top right. */
 export function FilterMenu(p: Props) {
   const [open, setOpen] = useState(false);
+  const [top, setTop] = useState(0);
+  const isPhone = useMedia(PHONE);
   const wrap = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
+
+  const toggle = () => {
+    // On a phone the menu is placed just below the button, across the full width.
+    if (!open && button.current) setTop(Math.round(button.current.getBoundingClientRect().bottom + 8));
+    setOpen(!open);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -48,6 +93,9 @@ export function FilterMenu(p: Props) {
     };
   }, [open]);
 
+  const authorName = p.authors.find((a) => a.id === p.author)?.name;
+  const tasteList = TASTES.filter((t) => p.tastes.has(t));
+
   return (
     <div className="menu-wrap" ref={wrap}>
       <button
@@ -57,7 +105,7 @@ export function FilterMenu(p: Props) {
         aria-expanded={open}
         aria-controls="filter-menu"
         aria-label={p.activeCount ? `Filters, ${p.activeCount} actief` : "Filters"}
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
       >
         <FilterIcon />
         <span className="menu-label" aria-hidden="true">Filters</span>
@@ -69,7 +117,14 @@ export function FilterMenu(p: Props) {
       </button>
 
       {open && (
-        <div className="menu-panel" id="filter-menu" ref={panel} role="group" aria-label="Filters en sorteren">
+        <div
+          className={"menu-panel" + (isPhone ? " phone" : "")}
+          style={isPhone ? { top, maxHeight: `calc(100dvh - ${top + 16}px)` } : undefined}
+          id="filter-menu"
+          ref={panel}
+          role="group"
+          aria-label="Filters en sorteren"
+        >
           {p.myName && (
             <p className="menu-who">
               Ingelogd als <strong>{p.myName}</strong>
@@ -77,7 +132,7 @@ export function FilterMenu(p: Props) {
           )}
 
           <div className="menu-sec">
-            <span className="flabel">Favorieten</span>
+            {!isPhone && <span className="flabel">Favorieten</span>}
             <div className="chips">
               <button className="chip fav" type="button" aria-pressed={p.onlyFav} onClick={() => p.setOnlyFav(!p.onlyFav)}>
                 ♥ Alleen mijn favorieten
@@ -85,8 +140,7 @@ export function FilterMenu(p: Props) {
             </div>
           </div>
 
-          <div className="menu-sec">
-            <span className="flabel">Maaltijd</span>
+          <Section title="Maaltijd" summary={p.meal ?? ""} collapsible={isPhone}>
             <div className="chips">
               {MEALS.map((m) => (
                 <button key={m} className="chip meal" type="button" aria-pressed={p.meal === m} onClick={() => p.setMeal(p.meal === m ? null : m)}>
@@ -94,10 +148,9 @@ export function FilterMenu(p: Props) {
                 </button>
               ))}
             </div>
-          </div>
+          </Section>
 
-          <div className="menu-sec">
-            <span className="flabel">Smaak</span>
+          <Section title="Smaak" summary={tasteList.join(", ")} collapsible={isPhone}>
             <div className="chips">
               {TASTES.map((t) => (
                 <button key={t} className="chip taste" type="button" aria-pressed={p.tastes.has(t)} onClick={() => p.toggleTaste(t)}>
@@ -105,10 +158,9 @@ export function FilterMenu(p: Props) {
                 </button>
               ))}
             </div>
-          </div>
+          </Section>
 
-          <div className="menu-sec">
-            <span className="flabel">Toegevoegd door</span>
+          <Section title="Toegevoegd door" summary={authorName ?? ""} collapsible={isPhone}>
             {p.authors.length ? (
               <div className="chips">
                 {p.authors.map((a) => (
@@ -126,16 +178,17 @@ export function FilterMenu(p: Props) {
             ) : (
               <span className="hint">Nog niemand heeft een recept toegevoegd.</span>
             )}
-          </div>
+          </Section>
 
-          <div className="menu-sec">
-            <label className="flabel" htmlFor="sort">Sorteren</label>
-            <select id="sort" className="in" value={p.sort} onChange={(e) => p.setSort(e.target.value as SortKey)}>
-              <option value="new">Nieuwste eerst</option>
-              <option value="az">A–Z</option>
-              <option value="time">Snelste eerst</option>
+          <Section title="Sorteren" summary={p.sort === "new" ? "" : SORT_LABELS[p.sort]} collapsible={isPhone}>
+            <select className="in" aria-label="Sorteren" value={p.sort} onChange={(e) => p.setSort(e.target.value as SortKey)}>
+              {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+                <option key={k} value={k}>
+                  {SORT_LABELS[k]}
+                </option>
+              ))}
             </select>
-          </div>
+          </Section>
 
           <div className="menu-foot">
             <button className="btn ghost" type="button" onClick={p.onClear} disabled={!p.activeCount}>
