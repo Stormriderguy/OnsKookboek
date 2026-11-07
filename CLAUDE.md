@@ -39,10 +39,11 @@ Alle tekst in de app is Nederlands.
 
 ## Inloggen
 
-- Inloggen met een naam en een persoonlijke code die de eigenaar uitdeelt (geen e-mails). Technisch: Supabase Auth met e-mail + wachtwoord, waarbij de naam wordt omgezet naar `naam@onskookboek.app` en de code het wachtwoord is.
-- Alleen mensen die de eigenaar toevoegt komen erin. Zet in Supabase "Allow new users to sign up" uit; de eigenaar maakt gebruikers aan via Authentication → Users → Add user (Auto Confirm aan).
-- Iedereen die is ingelogd mag alle recepten zien, toevoegen, wijzigen en verwijderen.
-- Bij de eerste keer inloggen vraagt de app om een weergavenaam. Die wordt opgeslagen in `profiles` en getoond bij "Toegevoegd door".
+- De eigenaar deelt eenmalige toegangscodes uit (`select public.new_invite_code('notitie');` in de SQL Editor). Geen e-mails of wachtwoorden.
+- Wie een code heeft, vult in de app de code in en kiest zelf een naam (uniek, één keer gekozen). Technisch: Supabase anonymous sign-in, daarna de RPC `redeem_invite(code, naam)` die de code verbruikt en het profiel aanmaakt.
+- Daarna blijft de persoon op dat apparaat ingelogd; er is geen uitlogknop (na uitloggen is een nieuwe code nodig).
+- In Supabase staan "Allow new users to sign up" en "Allow anonymous sign-ins" aan. Toegang tot de gegevens loopt via `public.is_member()` (= heeft een profiel): alleen leden zien en wijzigen recepten, favorieten en foto's.
+- De naam wordt getoond bij "Toegevoegd door".
 
 ## Datamodel (Supabase)
 
@@ -128,7 +129,7 @@ Zet een `.env.example` in de repo. Echte sleutels horen niet in Git.
 
 ## Klaar wanneer
 
-- [ ] Inloggen met naam en code werkt, en wie niet is toegevoegd komt er niet in.
+- [ ] Met een geldige code en een zelfgekozen naam kom je erin en blijf je ingelogd; zonder geldige code zie je niets.
 - [ ] Een recept met ingrediënten, stappen en twee foto's toevoegen, bewerken en verwijderen werkt.
 - [ ] Een tweede gebruiker ziet een nieuw recept zonder te herladen.
 - [ ] Favorieten zijn per persoon en blijven bewaard na opnieuw inloggen.

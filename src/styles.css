@@ -55,10 +55,8 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(1.6rem, 4vw
 .btn.danger { color: var(--tomato); border-color: var(--tomato-soft); background: var(--tomato-soft) }
 .btn.ghost { background: transparent; border-color: transparent }
 .btn:disabled { opacity: .55; cursor: default }
-.who { display: flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--muted) }
-.who .close { width: 36px; height: 36px; color: var(--muted) }
+.who { font-size: .85rem; color: var(--muted); font-weight: 600; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 @media (max-width: 520px) {
-  .who-name { display: none }
   .search { flex-basis: 160px }
 }
 

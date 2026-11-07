@@ -12,24 +12,42 @@ De app draait op **Vercel**. De recepten, foto's en het inloggen zitten in **Sup
 2. Ga naar **SQL Editor → New query**, plak de hele inhoud van [`supabase/schema.sql`](supabase/schema.sql) en klik op **Run**.
    Je ziet "Success. No rows returned". Het script mag je veilig nog een keer draaien.
 
-### 2. Alleen mensen die jij toevoegt
+### 2. Toegang met codes
 
-Iedereen logt in met een **naam** en een **code** die jij uitdeelt. Er worden geen e-mails verstuurd.
+Jij deelt **codes** uit. Wie een code heeft, opent de app, vult de code in en **kiest zelf een naam**. Daarna blijft diegene op dat apparaat ingelogd. Er zijn geen e-mails of wachtwoorden.
 
-1. Ga naar **Authentication → Sign In / Providers**.
-2. Zet **Allow new users to sign up** uit. Laat **Email** aan (inloggen met naam en code loopt daarlangs).
+**Eenmalig instellen** in **Authentication → Sign In / Providers**:
 
-**Iemand toevoegen** (ook jezelf):
+1. Zet **Allow new users to sign up** aan.
+2. Zet **Allow anonymous sign-ins** aan.
 
-1. Ga naar **Authentication → Users → Add user → Create new user**.
-2. **Email**: de naam gevolgd door `@onskookboek.app`, bijvoorbeeld `riet@onskookboek.app`.
-   Gebruik kleine letters, zonder spaties (een streepje mag: `oma-riet@onskookboek.app`). Dit is geen echt e-mailadres; er komt nooit mail naartoe.
-3. **Password**: de code die je aan die persoon geeft. Minimaal 6 tekens; liever 8 of meer, bijvoorbeeld `tulp-48-appel`.
-4. Vink **Auto Confirm User** aan en klik op **Create user**.
+Dat lijkt open, maar zonder geldige code ziet niemand iets: de database laat alleen mensen met een ingeleverde code bij de recepten.
 
-Geef de persoon de naam (`riet`) en de code. Bij de eerste keer inloggen kiest diegene de naam die bij de recepten komt te staan.
+**Een code maken**: ga naar **SQL Editor → New query** en draai:
 
-**Code kwijt of iemand weghalen**: zoek de persoon op bij **Authentication → Users**. Via ⋯ kun je een nieuw wachtwoord (code) instellen of de gebruiker verwijderen. Hun recepten blijven staan.
+```sql
+select public.new_invite_code('voor Riet');
+```
+
+Je krijgt een code als `K7PM-Q2XD`. Geef die aan de persoon. Elke code werkt één keer. De tekst tussen de haakjes is alleen een notitie voor jezelf.
+
+**Overzicht van alle codes en wie ze gebruikt heeft**:
+
+```sql
+select c.code, c.note, c.created_at, p.display_name as gebruikt_door, c.used_at
+from public.invite_codes c
+left join public.profiles p on p.id = c.used_by
+order by c.created_at desc;
+```
+
+**Een ongebruikte code intrekken**: `delete from public.invite_codes where code = 'K7PMQ2XD';` (zonder streepje).
+
+**Iemand de toegang afnemen**: zoek de persoon op bij **Authentication → Users** (te herkennen aan "Anonymous") en verwijder de gebruiker. Hun recepten blijven staan.
+
+**Goed om te weten**:
+
+- De inlog hoort bij het apparaat en de browser. Op een nieuw apparaat, of na het wissen van de browsergegevens, is een nieuwe code nodig. Die persoon kiest dan een andere naam, of jij haalt eerst de oude gebruiker weg zodat de naam weer vrij is.
+- **iPhone/iPad**: zet de app eerst op het beginscherm en vul de code dáár in. Safari en de app op het beginscherm delen de inlog niet, en Safari wist gegevens van sites die je een week niet hebt bezocht.
 
 ### 3. Adres van de app
 

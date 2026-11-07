@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BUCKET, photoUrl, supabase } from "../supabase";
 import { MEALS, TASTES, type Recipe, type SortKey } from "../types";
-import { ClockIcon, HeartIcon, LogoutIcon, SearchIcon } from "./Icons";
+import { ClockIcon, HeartIcon, SearchIcon } from "./Icons";
 import { RecipeDetail } from "./RecipeDetail";
 import { RecipeEditor } from "./RecipeEditor";
 
-type Props = { uid: string; myName: string; onSignOut: () => void };
+type Props = { uid: string; myName: string };
 
-export function Cookbook({ uid, myName, onSignOut }: Props) {
+export function Cookbook({ uid, myName }: Props) {
   const db = supabase!;
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -173,12 +173,7 @@ export function Cookbook({ uid, myName, onSignOut }: Props) {
               <h1>Ons Kookboek</h1>
               <span className="count">{loaded ? (n === 1 ? "1 recept" : `${n} recepten`) : ""}</span>
             </div>
-            <div className="who">
-              <span className="who-name">{myName}</span>
-              <button className="close" type="button" onClick={onSignOut} aria-label={`Uitloggen (${myName})`} title="Uitloggen">
-                <LogoutIcon />
-              </button>
-            </div>
+            {myName && <div className="who">{myName}</div>}
             <div className="search">
               <SearchIcon />
               <label className="sr-only" htmlFor="q">Zoeken</label>

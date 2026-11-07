@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
-import { LOGIN_DOMAIN, Login } from "./components/Login";
-import { NameSetup } from "./components/NameSetup";
+import { Join } from "./components/Join";
 import { Cookbook } from "./components/Cookbook";
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  // undefined = still looking it up, null = no name yet (show the code screen), string = member
   const [myName, setMyName] = useState<string | null | undefined>(undefined);
   const uid = session?.user.id;
 
@@ -17,10 +17,11 @@ export default function App() {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  // Look up the display name once per signed-in user.
+  // Look up the name once per signed-in user.
   useEffect(() => {
-    if (!supabase || !uid) {
-      setMyName(undefined);
+    if (!supabase || session === undefined) return;
+    if (!uid) {
+      setMyName(null);
       return;
     }
     let active = true;
@@ -31,17 +32,14 @@ export default function App() {
       .maybeSingle()
       .then(({ data, error }) => {
         if (!active) return;
+        // Never overwrite a name the code screen just set (that lookup may have started before the code was handed in).
         // On a network error, carry on with an empty name rather than blocking the app.
-        setMyName(error ? "" : (data?.display_name ?? null));
+        setMyName((prev) => (prev ? prev : error ? "" : (data?.display_name ?? null)));
       });
     return () => {
       active = false;
     };
-  }, [uid]);
-
-  const signOut = () => {
-    supabase?.auth.signOut();
-  };
+  }, [uid, session]);
 
   if (!supabase) {
     return (
@@ -56,20 +54,13 @@ export default function App() {
       </div>
     );
   }
-  if (session === undefined || (session && myName === undefined)) {
+  if (myName === undefined) {
     return (
       <div className="gate" aria-busy="true">
         <p className="hint">Laden…</p>
       </div>
     );
   }
-  if (!session || !uid) return <Login />;
-  if (myName === null) {
-    // "riet@onskookboek.app" → "Riet"
-    const email = session.user.email ?? "";
-    const local = email.endsWith("@" + LOGIN_DOMAIN) ? email.split("@")[0].replace(/-/g, " ") : "";
-    const suggestion = local ? local[0].toUpperCase() + local.slice(1) : "";
-    return <NameSetup uid={uid} suggestion={suggestion} onDone={setMyName} onSignOut={signOut} />;
-  }
-  return <Cookbook uid={uid} myName={myName ?? ""} onSignOut={signOut} />;
+  if (myName === null || !uid) return <Join onJoined={setMyName} />;
+  return <Cookbook uid={uid} myName={myName} />;
 }
