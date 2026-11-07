@@ -157,6 +157,7 @@ textarea.in { resize: vertical; min-height: 70px }
 .gate-card { width: 100%; max-width: 400px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 28px 24px; display: flex; flex-direction: column; gap: 16px }
 .gate-card h1 { font-size: 2rem }
 .gate-card p { margin: 0; color: var(--muted) }
+.gate-card p.err { color: var(--tomato); font-weight: 600 }
 .gate-card .btn { justify-content: center }
 .ok { background: var(--basil-soft); color: var(--ink); border-radius: 10px; padding: 10px 14px; font-size: .92rem }
 

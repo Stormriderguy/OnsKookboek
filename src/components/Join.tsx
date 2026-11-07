@@ -30,10 +30,13 @@ export function Join({ onJoined }: { onJoined: (name: string) => void }) {
       if (!data.session) {
         const { error } = await db.auth.signInAnonymously();
         if (error) {
+          // Most likely cause: "Allow anonymous sign-ins" or "Allow new users to sign up" is off in Supabase.
           setErr(
             error.status === 429
               ? "Te veel pogingen. Wacht een paar minuten en probeer het opnieuw."
-              : "Het kookboek laat op dit moment niemand nieuw toe. Vraag de eigenaar om hulp.",
+              : error.code === "anonymous_provider_disabled" || error.code === "signup_disabled"
+                ? "Het kookboek staat nog niet open voor nieuwe mensen. Eigenaar: zet in Supabase 'Allow new users to sign up' en 'Allow anonymous sign-ins' aan."
+                : "Aanmelden is niet gelukt. Controleer je verbinding en probeer het opnieuw.",
           );
           return;
         }
