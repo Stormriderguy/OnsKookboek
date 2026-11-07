@@ -1,0 +1,16 @@
+{
+  "name": "Ons Kookboek",
+  "short_name": "Kookboek",
+  "description": "Het gedeelde kookboek van familie en vrienden.",
+  "lang": "nl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F4F6EF",
+  "theme_color": "#2D683D",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
