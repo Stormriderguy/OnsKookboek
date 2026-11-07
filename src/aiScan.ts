@@ -42,7 +42,8 @@ async function call(path: string, init: RequestInit, timeoutMs: number): Promise
 export async function scanWithAI(file: File, onStatus: (label: string) => void): Promise<ParsedRecipe> {
   if (!SCAN_URL) throw new ScanError("weg");
   onStatus("Foto verkleinen…");
-  const photo = await shrink(file);
+  // Smaller than a recipe photo: the model works on the processor, and every pixel costs time.
+  const photo = await shrink(file, 1280);
 
   onStatus("Foto versturen…");
   const sent = await call("/scan", { method: "POST", headers: { "Content-Type": photo.type || "image/jpeg" }, body: photo }, 60_000);

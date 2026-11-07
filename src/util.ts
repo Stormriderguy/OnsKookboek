@@ -23,9 +23,8 @@ export function fmtDate(ts: string | null | undefined): string {
   }
 }
 
-/** Scale a photo down to max 1600 px on the longest side, as JPEG 0.85. */
-export async function shrink(file: File): Promise<Blob> {
-  const MAX = 1600;
+/** Scale a photo down to max 1600 px (or `MAX`) on the longest side, as JPEG 0.85. */
+export async function shrink(file: File, MAX = 1600): Promise<Blob> {
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
     const scale = Math.min(1, MAX / Math.max(bitmap.width, bitmap.height));

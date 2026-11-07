@@ -169,6 +169,8 @@ async function work() {
   running = false;
 }
 
+// Streamed, so Ollama answers at once and keeps sending: Node's fetch gives up
+// after 5 minutes without a first answer, and on a processor a scan can take longer.
 async function readRecipe(imageBase64) {
   let res;
   try {
@@ -177,7 +179,7 @@ async function readRecipe(imageBase64) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: CONFIG.model,
-        stream: false,
+        stream: true,
         format: SCHEMA,
         keep_alive: "30m",
         options: { temperature: 0, num_ctx: 8192 },
@@ -186,13 +188,28 @@ async function readRecipe(imageBase64) {
       signal: AbortSignal.timeout(CONFIG.scanTimeoutMs),
     });
   } catch (e) {
-    const err = new Error(`Ollama niet bereikbaar: ${e?.message ?? e}`);
-    if (e?.name !== "TimeoutError") err.code = "onbereikbaar";
+    const err = new Error(`Ollama niet bereikbaar: ${e?.cause?.code ?? e?.message ?? e}`);
+    if (e?.cause?.code === "ECONNREFUSED") err.code = "onbereikbaar";
     throw err;
   }
   if (!res.ok) throw new Error(`Ollama gaf ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  const data = await res.json();
-  return JSON.parse(data?.message?.content ?? "");
+
+  let content = "";
+  let rest = "";
+  const decoder = new TextDecoder();
+  for await (const chunk of res.body) {
+    rest += decoder.decode(chunk, { stream: true });
+    const lines = rest.split("\n");
+    rest = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const part = JSON.parse(line);
+      if (part.error) throw new Error(`Ollama: ${part.error}`);
+      content += part.message?.content ?? "";
+    }
+  }
+  if (rest.trim()) content += JSON.parse(rest).message?.content ?? "";
+  return JSON.parse(content);
 }
 
 // Clean up finished scans after 15 minutes, and expired login checks.
