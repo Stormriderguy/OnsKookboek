@@ -188,7 +188,7 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
    * First choice: the picture of the dish on a scanned photo, cut out. Otherwise, if the recipe has no photo yet,
    * the matching photo the scan function found in a free photo bank (Pixabay or Pexels).
    */
-  async function addDishPhoto(files: File[], p: ParsedRecipe): Promise<string> {
+  async function addDishPhoto(files: Blob[], p: ParsedRecipe): Promise<string> {
     const add = async (small: Blob | null) => {
       if (!small) return 0;
       try {
@@ -222,7 +222,7 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
   async function scanPhotos(files: File[]) {
     setScan({ busy: true, label: "Voorbereiden…", note: "", text: "" });
     try {
-      const p = await scanWithAI(files, (label) => setScan((s) => ({ ...s, label })), {
+      const { recipe: p, pages } = await scanWithAI(files, (label) => setScan((s) => ({ ...s, label })), {
         wantStock: photos.length === 0 && uploading === 0,
       });
       clearPending();
@@ -248,7 +248,7 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
       const addedSteps = p.steps.length - stepMerge.skipped;
       const skipped = ingMerge.skipped + stepMerge.skipped;
       const found = p.ingredients.length + p.steps.length;
-      const dish = await addDishPhoto(files, p);
+      const dish = await addDishPhoto(pages, p);
       setScan({
         busy: false,
         label: "",

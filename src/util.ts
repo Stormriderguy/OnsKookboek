@@ -24,6 +24,33 @@ export function fmtDate(ts: string | null | undefined): string {
 }
 
 /**
+ * Turns a photo clockwise by `degrees` (any angle, e.g. 90 or -4) so it stands upright.
+ * The corners that become empty are filled with white. Returns the photo as JPEG.
+ */
+export async function turnImage(blob: Blob, degrees: number): Promise<Blob> {
+  if (!degrees) return blob;
+  try {
+    const bitmap = await createImageBitmap(blob, { imageOrientation: "from-image" });
+    const rad = (degrees * Math.PI) / 180;
+    const cos = Math.abs(Math.cos(rad));
+    const sin = Math.abs(Math.sin(rad));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * cos + bitmap.height * sin);
+    canvas.height = Math.round(bitmap.width * sin + bitmap.height * cos);
+    const g = canvas.getContext("2d")!;
+    g.fillStyle = "#fff";
+    g.fillRect(0, 0, canvas.width, canvas.height);
+    g.translate(canvas.width / 2, canvas.height / 2);
+    g.rotate(rad);
+    g.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
+    bitmap.close();
+    return (await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.9))) ?? blob;
+  } catch {
+    return blob;
+  }
+}
+
+/**
  * Cuts the picture of the dish out of a scanned photo (edges as fractions 0-1) and makes it as small
  * as is still nice to look at: max 900 px, WebP 0.6 (JPEG 0.65 where the browser can't make WebP).
  */
