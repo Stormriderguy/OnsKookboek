@@ -8,6 +8,8 @@ export type ParsedRecipe = {
   minutes: number | null;
   ingredients: Ingredient[];
   steps: string[];
+  /** Where a picture of the finished dish is: which photo (0 = first) and its edges as fractions (0-1). */
+  dishPhoto: { index: number; left: number; top: number; right: number; bottom: number } | null;
 };
 
 const UNITS: [RegExp, string][] = [
@@ -89,6 +91,21 @@ const int = (v: unknown, max: number) => {
   return Number.isFinite(n) && n >= 1 && n <= max ? Math.round(n) : null;
 };
 
+/** The dish picture as the model gave it (photo number from 1, edges in percent), checked and as fractions. */
+function dishPhotoOf(v: unknown): ParsedRecipe["dishPhoto"] {
+  const o = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+  const num = (x: unknown) => (typeof x === "number" && Number.isFinite(x) ? x : NaN);
+  const photo = num(o.photo);
+  if (!(photo >= 1)) return null;
+  const clamp = (x: number) => Math.min(100, Math.max(0, x)) / 100;
+  let [left, top, right, bottom] = [o.left, o.top, o.right, o.bottom].map((x) => clamp(num(x)));
+  // No usable edges: take the whole photo (for example a photo of the plate itself).
+  if ([left, top, right, bottom].some(Number.isNaN) || right - left < 0.1 || bottom - top < 0.1) {
+    [left, top, right, bottom] = [0, 0, 1, 1];
+  }
+  return { index: Math.round(photo) - 1, left, top, right, bottom };
+}
+
 /** Cleans up what the scanner's AI model returned, so it fits the form's fields and units. */
 export function normalizeParsed(raw: unknown): ParsedRecipe {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
@@ -121,6 +138,7 @@ export function normalizeParsed(raw: unknown): ParsedRecipe {
 
   return {
     title,
+    dishPhoto: dishPhotoOf(r.dish_photo),
     description: str(r.description).slice(0, 400),
     servings: int(r.servings, 99),
     minutes: int(r.minutes, 1440),

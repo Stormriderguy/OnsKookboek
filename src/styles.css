@@ -224,7 +224,13 @@ textarea.in { resize: vertical; min-height: 70px }
 .scan-note { margin: 0; font-size: .88rem }
 .scan-text summary { cursor: pointer; font-size: .85rem; color: var(--muted) }
 .scan-text pre { white-space: pre-wrap; font: inherit; font-size: .82rem; max-height: 220px; overflow: auto; background: var(--card); border-radius: 10px; padding: 10px; margin: 8px 0 0 }
-@media (max-width: 560px) { .scan-btn { align-self: stretch; justify-content: center } }
+.scan-photos .addphoto { background: var(--card); border-color: var(--basil); color: var(--basil) }
+.scan-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.scan-actions .busy { cursor: progress }
+@media (max-width: 560px) {
+  .scan-btn { align-self: stretch; justify-content: center }
+  .scan-actions .btn.primary { flex: 1; justify-content: center }
+}
 @media (prefers-reduced-motion: reduce) { .bar-fill { transition: none } }
 
 /* iPhone and iPad zoom in on fields with text smaller than 16px; prevent that */

@@ -23,6 +23,41 @@ export function fmtDate(ts: string | null | undefined): string {
   }
 }
 
+/**
+ * Cuts the picture of the dish out of a scanned photo (edges as fractions 0-1) and makes it as small
+ * as is still nice to look at: max 900 px, WebP 0.6 (JPEG 0.65 where the browser can't make WebP).
+ */
+export async function cropSmall(
+  file: Blob,
+  box: { left: number; top: number; right: number; bottom: number },
+  MAX = 900,
+): Promise<Blob | null> {
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const sx = Math.round(box.left * bitmap.width);
+    const sy = Math.round(box.top * bitmap.height);
+    const sw = Math.max(1, Math.round((box.right - box.left) * bitmap.width));
+    const sh = Math.max(1, Math.round((box.bottom - box.top) * bitmap.height));
+    // A narrow strip (the edge of the next page) or a tiny picture is no use as a recipe photo.
+    if (sw / sh < 0.4 || sw / sh > 2.5 || Math.max(sw, sh) < 250) {
+      bitmap.close();
+      return null;
+    }
+    const scale = Math.min(1, MAX / Math.max(sw, sh));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(sw * scale);
+    canvas.height = Math.round(sh * scale);
+    canvas.getContext("2d")!.drawImage(bitmap, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const toBlob = (type: string, q: number) => new Promise<Blob | null>((res) => canvas.toBlob(res, type, q));
+    const webp = await toBlob("image/webp", 0.6);
+    if (webp?.type === "image/webp") return webp;
+    return await toBlob("image/jpeg", 0.65);
+  } catch {
+    return null;
+  }
+}
+
 /** Scale a photo down to max 1600 px (or `MAX`) on the longest side, as JPEG 0.85. */
 export async function shrink(file: File, MAX = 1600): Promise<Blob> {
   try {

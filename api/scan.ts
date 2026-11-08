@@ -29,8 +29,20 @@ const SCHEMA = {
       },
     },
     steps: { type: "array", items: { type: "string" } },
+    dish_photo: {
+      type: "object",
+      properties: {
+        photo: { type: "integer" },
+        left: { type: "integer" },
+        top: { type: "integer" },
+        right: { type: "integer" },
+        bottom: { type: "integer" },
+      },
+      required: ["photo", "left", "top", "right", "bottom"],
+      additionalProperties: false,
+    },
   },
-  required: ["title", "description", "servings", "minutes", "ingredients", "steps"],
+  required: ["title", "description", "servings", "minutes", "ingredients", "steps", "dish_photo"],
   additionalProperties: false,
 };
 
@@ -44,7 +56,8 @@ Regels:
 - servings: het aantal personen als getal, of 0 als het er niet staat.
 - minutes: de totale bereidingstijd in minuten als getal, of 0 als het er niet staat.
 - ingredients: elk ingrediënt apart. qty is de hoeveelheid zoals "200", "1,5" of "1/2" (leeg als er geen is). unit is de eenheid zoals g, kg, ml, dl, l, el, tl, snufje, stuks, teen, blik, bos, plak, kopje of naar smaak (leeg als er geen is). name is de rest van de regel. Zet elk woord in maar één veld. Voorbeelden: "200 g bloem" → qty "200", unit "g", name "bloem"; "2 kleine uien" → qty "2", unit "", name "kleine uien"; "zout" → qty "", unit "", name "zout".
-- steps: de bereiding in de juiste volgorde. Elke alinea is één stap: neem de hele alinea over als één tekst en splits hem niet op in losse zinnen. Zijn de stappen in het recept genummerd, dan is elk nummer één stap. Laat de nummers zelf weg.`;
+- steps: de bereiding in de juiste volgorde. Elke alinea is één stap: neem de hele alinea over als één tekst en splits hem niet op in losse zinnen. Zijn de stappen in het recept genummerd, dan is elk nummer één stap. Laat de nummers zelf weg.
+- dish_photo: staat er op een foto een afbeelding van het klaargemaakte gerecht (het eten zelf, bijvoorbeeld de foto naast de tekst in een kookboek, of een foto van het bord)? Geef dan photo = het nummer van die foto (1 voor de eerste) en de randen van alleen die afbeelding van het eten, in procenten van de breedte en hoogte van de foto: left en right van links gemeten, top en bottom van boven gemeten (0 tot 100). Neem geen tekst, kantlijn of tafel mee als dat kan. Kies bij meer afbeeldingen de grootste. Is er geen afbeelding van het gerecht, of is het eten maar half of als smal randje te zien (bijvoorbeeld de rand van de volgende pagina), geef dan photo 0 en alle randen 0.`;
 
 const MORE_PAGES = `Er zijn meerdere foto's. Samen vormen ze één recept, bijvoorbeeld pagina 1 en 2, of een foto van de ingrediënten en een van de bereiding. Geef één recept terug:
 - Neem elk ingrediënt maar één keer op, ook als het op meer foto's te zien is.

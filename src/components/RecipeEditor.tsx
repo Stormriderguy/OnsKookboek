@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { MAX_SCAN_PHOTOS, ScanError, scanWithAI } from "../aiScan";
-import { mergeIngredients, mergeSteps, parsedAsText } from "../parseRecipe";
+import { mergeIngredients, mergeSteps, parsedAsText, type ParsedRecipe } from "../parseRecipe";
 import { BUCKET, photoUrl, supabase } from "../supabase";
 import { MEALS, TASTES, UNITS, type Recipe, type RecipeInput } from "../types";
-import { shrink } from "../util";
+import { cropSmall, shrink } from "../util";
 import { CameraIcon, XIcon } from "./Icons";
 import { Sheet } from "./Sheet";
 
@@ -65,20 +65,24 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
     if (paths.length) await db.storage.from(BUCKET).remove(paths);
   }
 
+  /** Puts a photo in the bucket and adds it to this recipe's photos. */
+  async function uploadPhoto(blob: Blob, ext: string, first = false) {
+    const path = `${uid}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await db.storage
+      .from(BUCKET)
+      .upload(path, blob, { contentType: blob.type || "image/jpeg", cacheControl: "31536000" });
+    if (error) throw error;
+    uploadedNow.current.add(path);
+    setPhotos((p) => (first ? [path, ...p] : [...p, path]));
+  }
+
   async function addFiles(files: File[]) {
     for (const file of files) {
       setUploading((n) => n + 1);
       try {
         const small = await shrink(file);
         const isJpeg = small.type === "image/jpeg";
-        const ext = isJpeg ? "jpg" : (file.name.split(".").pop() || "img").toLowerCase();
-        const path = `${uid}/${crypto.randomUUID()}.${ext}`;
-        const { error } = await db.storage
-          .from(BUCKET)
-          .upload(path, small, { contentType: small.type || "image/jpeg", cacheControl: "31536000" });
-        if (error) throw error;
-        uploadedNow.current.add(path);
-        setPhotos((p) => [...p, path]);
+        await uploadPhoto(small, isJpeg ? "jpg" : (file.name.split(".").pop() || "img").toLowerCase());
       } catch (e) {
         const msg = e instanceof Error ? e.message : "";
         setErr(
@@ -151,10 +155,57 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
     text: "",
   });
 
+  // Photos waiting to be read: you can take several (pages of one recipe) before sending them together.
+  const [pending, setPending] = useState<{ key: string; file: File; url: string }[]>([]);
+  const pendingRef = useRef(pending);
+  pendingRef.current = pending;
+  useEffect(() => () => pendingRef.current.forEach((p) => URL.revokeObjectURL(p.url)), []);
+
+  function addPending(files: File[]) {
+    const room = MAX_SCAN_PHOTOS - pending.length;
+    const added = files.slice(0, Math.max(room, 0)).map((file) => ({ key: newKey(), file, url: URL.createObjectURL(file) }));
+    if (added.length) setPending((list) => [...list, ...added]);
+    setScan((s) => ({
+      ...s,
+      text: "",
+      note: files.length > room ? `Er kunnen maximaal ${MAX_SCAN_PHOTOS} foto's tegelijk gelezen worden.` : "",
+    }));
+  }
+
+  function removePending(key: string) {
+    const gone = pending.find((p) => p.key === key);
+    if (gone) URL.revokeObjectURL(gone.url);
+    setPending((list) => list.filter((p) => p.key !== key));
+  }
+
+  function clearPending() {
+    pending.forEach((p) => URL.revokeObjectURL(p.url));
+    setPending([]);
+  }
+
+  /**
+   * A scanned photo with a picture of the finished dish on it: cut that picture out, make it small and add it
+   * to the recipe's photos (first, if the recipe had none yet). Returns its size in kB, or 0 if nothing was added.
+   */
+  async function addDishPhoto(files: File[], dish: ParsedRecipe["dishPhoto"]): Promise<number> {
+    const file = dish ? files[dish.index] : undefined;
+    if (!dish || !file) return 0;
+    setScan((s) => ({ ...s, label: "Foto van het gerecht toevoegen…" }));
+    const small = await cropSmall(file, dish);
+    if (!small) return 0;
+    try {
+      await uploadPhoto(small, small.type === "image/webp" ? "webp" : "jpg", photos.length === 0);
+      return Math.max(1, Math.round(small.size / 1024));
+    } catch {
+      return 0;
+    }
+  }
+
   async function scanPhotos(files: File[]) {
     setScan({ busy: true, label: "Voorbereiden…", note: "", text: "" });
     try {
       const p = await scanWithAI(files, (label) => setScan((s) => ({ ...s, label })));
+      clearPending();
       const text = parsedAsText(p);
       if (p.title && !title.trim()) setTitle(p.title);
       if (p.description && !description.trim()) setDescription(p.description);
@@ -177,6 +228,7 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
       const addedSteps = p.steps.length - stepMerge.skipped;
       const skipped = ingMerge.skipped + stepMerge.skipped;
       const found = p.ingredients.length + p.steps.length;
+      const dish = await addDishPhoto(files, p.dishPhoto);
       setScan({
         busy: false,
         label: "",
@@ -185,7 +237,9 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
           ? "Er is weinig herkend. Probeer een scherpere foto: recht van boven, met goed licht en zonder schaduw."
           : `Klaar: ${addedIngs} ingrediënten en ${addedSteps} stappen toegevoegd` +
             (skipped ? ` (${skipped} stond${skipped === 1 ? "" : "en"} er al en ${skipped === 1 ? "is" : "zijn"} overgeslagen)` : "") +
-            ". Controleer alles even, de herkenning maakt soms fouten. Staat het recept op meer pagina's? Scan dan ook de volgende pagina.",
+            ". " +
+            (dish ? `De foto van het gerecht staat bij de foto's (${dish} kB); haal hem weg als hij niet goed is. ` : "") +
+            "Controleer alles even, de herkenning maakt soms fouten.",
       });
     } catch (e) {
       const unreadable = e instanceof ScanError && e.kind === "mislukt";
@@ -194,7 +248,7 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
         label: "",
         text: "",
         note: unreadable
-          ? "Deze foto kon niet worden gelezen. Probeer een scherpere foto: recht van boven, met goed licht en zonder schaduw."
+          ? "De foto kon niet worden gelezen. Probeer een scherpere foto: recht van boven, met goed licht en zonder schaduw."
           : "Er kunnen vandaag geen foto's meer worden verwerkt. Probeer het morgen opnieuw.",
       });
     }
@@ -220,22 +274,69 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
 
       <div className="sec">
         <div className="scanbox">
-          <label className={"btn scan-btn" + (scan.busy ? " busy" : "")} aria-disabled={scan.busy}>
-            <CameraIcon />
-            {scan.busy ? "Bezig met scannen…" : "Recept scannen van foto"}
-            <input
-              className="sr-only"
-              type="file"
-              accept="image/*"
-              multiple
-              disabled={scan.busy}
-              onChange={(e) => {
-                const files = Array.from(e.target.files ?? []).slice(0, MAX_SCAN_PHOTOS);
-                e.target.value = "";
-                if (files.length) scanPhotos(files);
-              }}
-            />
-          </label>
+          {pending.length === 0 ? (
+            <label className="btn scan-btn">
+              <CameraIcon />
+              Recept scannen van foto
+              <input
+                className="sr-only"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  e.target.value = "";
+                  addPending(files);
+                }}
+              />
+            </label>
+          ) : (
+            <>
+              <div className="photos scan-photos" aria-label="Foto's om te lezen">
+                {pending.map((p, ix) => (
+                  <div key={p.key} className="pthumb">
+                    <img src={p.url} alt={`Pagina ${ix + 1}`} />
+                    {!scan.busy && (
+                      <button className="x" type="button" aria-label={`Pagina ${ix + 1} weghalen`} onClick={() => removePending(p.key)}>
+                        <XIcon />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {!scan.busy && pending.length < MAX_SCAN_PHOTOS && (
+                  <label className="addphoto">
+                    + Nog een foto
+                    <input
+                      className="sr-only"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files ?? []);
+                        e.target.value = "";
+                        addPending(files);
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+              <div className="scan-actions">
+                <button
+                  className={"btn primary" + (scan.busy ? " busy" : "")}
+                  type="button"
+                  disabled={scan.busy}
+                  onClick={() => scanPhotos(pending.map((p) => p.file))}
+                >
+                  {scan.busy ? "Bezig met lezen…" : pending.length > 1 ? `Recept lezen (${pending.length} foto's)` : "Recept lezen"}
+                </button>
+                {!scan.busy && (
+                  <button className="btn ghost" type="button" onClick={clearPending}>
+                    Annuleren
+                  </button>
+                )}
+              </div>
+            </>
+          )}
           {scan.busy ? (
             <div className="scan-progress" role="status">
               <div className="bar-track">
@@ -246,7 +347,11 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
           ) : scan.note ? (
             <p className="scan-note" role="status">{scan.note}</p>
           ) : (
-            <span className="hint">Maak een foto van een recept op papier. Staat het op meer pagina's, kies dan alle foto's tegelijk (maximaal 4) of scan ze na elkaar. Wat er al staat, wordt niet dubbel toegevoegd.</span>
+            <span className="hint">
+              {pending.length === 0
+                ? "Maak een foto van een recept op papier. Staat het op meer pagina's, dan kun je daarna nog een foto toevoegen."
+                : `Staat het recept op meer pagina's? Voeg dan met "+ Nog een foto" de volgende pagina toe (maximaal ${MAX_SCAN_PHOTOS}). Druk daarna op "Recept lezen". Wat al in het formulier staat, wordt niet dubbel toegevoegd.`}
+            </span>
           )}
           {scan.text && !scan.busy && (
             <details className="scan-text">
