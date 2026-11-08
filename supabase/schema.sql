@@ -401,6 +401,67 @@ drop policy if exists "kookboek-pdf lezen leden" on storage.objects;
 create policy "kookboek-pdf lezen leden" on storage.objects for select to authenticated using (bucket_id = 'kookboek-pdf' and (select public.is_member()));
 
 -- ============================================================
+-- Voedingswaarden: NEVO-online (RIVM) en de koppeling per recept
+-- De tabel nevo wordt gevuld met scripts/import-nevo.mjs (npm run nevo), ongewijzigd uit NEVO-online.
+-- Bron: "Gebaseerd op gegevens van NEVO-online versie 2025/9.0, RIVM, Bilthoven".
+-- ============================================================
+
+create extension if not exists pg_trgm with schema extensions;
+
+create table if not exists public.nevo (
+  code int primary key,
+  naam text not null,
+  synoniem text default '',      -- andere namen, bv. "Mariakoekje/kaakje" bij Biscuit
+  groep text default '',
+  eenheid text default 'g',     -- g of ml: de waarden gelden per 100 g of 100 ml
+  kcal numeric,
+  eiwit numeric,
+  koolh numeric,
+  suikers numeric,
+  vet numeric,
+  verz_vet numeric,
+  vezels numeric,
+  natrium_mg numeric
+);
+alter table public.nevo add column if not exists synoniem text default '';
+alter table public.nevo enable row level security;
+drop policy if exists "nevo lezen leden" on public.nevo;
+create policy "nevo lezen leden" on public.nevo for select to authenticated using ((select public.is_member()));
+
+-- Zoekt de NEVO-producten die het best bij een woord passen (voor het koppelen van ingrediënten).
+create or replace function public.nevo_zoek(term text, aantal int default 8)
+returns setof public.nevo
+language sql
+stable
+set search_path = ''
+as $$
+  select n.* from public.nevo n
+  where (n.naam || ' ' || coalesce(n.synoniem, '')) ilike '%' || term || '%'
+     or extensions.word_similarity(term, n.naam || ' ' || coalesce(n.synoniem, '')) > 0.3
+  order by (n.naam ilike term || '%') desc,
+           extensions.word_similarity(term, n.naam || ' ' || coalesce(n.synoniem, '')) desc,
+           length(n.naam)
+  limit least(greatest(aantal, 1), 20);
+$$;
+revoke all on function public.nevo_zoek(text, int) from public, anon;
+grant execute on function public.nevo_zoek(text, int) to authenticated;
+
+-- Per recept: welk NEVO-product en hoeveel gram bij elk ingrediënt hoort.
+-- Los van het recept zelf, zodat elk lid de koppeling kan aanvullen of verbeteren.
+create table if not exists public.recipe_nutrition (
+  recipe_id uuid primary key references public.recipes on delete cascade,
+  items jsonb not null default '[]',   -- [{qty, unit, name, nevo, g}]
+  updated_at timestamptz default now()
+);
+alter table public.recipe_nutrition enable row level security;
+drop policy if exists "voeding lezen leden" on public.recipe_nutrition;
+drop policy if exists "voeding toevoegen leden" on public.recipe_nutrition;
+drop policy if exists "voeding wijzigen leden" on public.recipe_nutrition;
+create policy "voeding lezen leden"     on public.recipe_nutrition for select to authenticated using ((select public.is_member()));
+create policy "voeding toevoegen leden" on public.recipe_nutrition for insert to authenticated with check ((select public.is_member()));
+create policy "voeding wijzigen leden"  on public.recipe_nutrition for update to authenticated using ((select public.is_member())) with check ((select public.is_member()));
+
+-- ============================================================
 -- Realtime: wijzigingen in recepten live doorsturen
 -- ============================================================
 

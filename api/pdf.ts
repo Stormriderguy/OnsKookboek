@@ -8,6 +8,9 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
 import sharp from "sharp";
+import Anthropic from "@anthropic-ai/sdk";
+import { linkIngredients } from "./_lib/match.js";
+import { lineKey, NEVO_SOURCE, nl, nutriScore, scaled, totals, type NevoFood, type NutritionItem } from "./_lib/nutrition.js";
 
 const BUCKET_PHOTOS = "recipe-photos";
 const BUCKET_PDF = "kookboek-pdf";
@@ -20,7 +23,10 @@ const SECRET_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVI
 
 type Ingredient = { qty?: string; unit?: string; name?: string };
 type Row = {
+  id: string;
   title: string;
+  /** Filled in here: the nutrition line for the PDF. */
+  nutrition?: string;
   description: string | null;
   meals: string[] | null;
   tastes: string[] | null;
@@ -99,6 +105,7 @@ async function run(): Promise<Response> {
     return json(503, { error: "supabase" });
   }
   const recipes = (data as Row[]).sort((a, b) => (a.title || "").localeCompare(b.title || "", "nl"));
+  await addNutrition(admin, recipes, 25);
   const bytes = await makeBook(admin, recipes);
   const { error: upErr } = await admin.storage
     .from(BUCKET_PDF)
@@ -129,6 +136,7 @@ async function oneRecipe(id: string, token: string): Promise<Response> {
   const f = await fonts(doc);
   const photo = row.photos?.[0] ? await smallPhoto(asMember, row.photos[0]) : null;
   const image = photo ? await doc.embedJpg(photo).catch(() => null) : null;
+  await addNutrition(asMember, [row], 1);
   recipePages(doc, f, row, image);
   const pages = doc.getPages();
   pages.forEach((page, i) => {
@@ -146,6 +154,74 @@ async function oneRecipe(id: string, token: string): Promise<Response> {
     },
   });
 }
+
+// ---------------------------------------------------------------------------
+// Nutrition: one line per recipe ("Per persoon: … · Nutri-Score B (indicatie)").
+// Recipes whose ingredients aren't linked to NEVO yet are linked first (at most `maxNew` per run, so the
+// weekly job stays within its time; the next run, or opening the recipe in the app, does the rest).
+// ---------------------------------------------------------------------------
+
+async function addNutrition(db: SupabaseClient, rows: Row[], maxNew: number) {
+  const ids = rows.map((r) => r.id).filter(Boolean);
+  if (!ids.length) return;
+  const { data: saved, error } = await db.from("recipe_nutrition").select("recipe_id, items").in("recipe_id", ids);
+  if (error) {
+    console.error("PDF: voeding ophalen mislukt (is schema.sql gedraaid?):", error.message);
+    return;
+  }
+  const byRecipe = new Map(((saved ?? []) as { recipe_id: string; items: NutritionItem[] }[]).map((s) => [s.recipe_id, s.items]));
+  const client = process.env.ANTHROPIC_API_KEY ? new Anthropic({ timeout: 60_000, maxRetries: 1 }) : null;
+
+  const linked = new Map<string, NutritionItem[]>();
+  const todo: { r: Row; known: Map<string, NutritionItem>; missing: { qty: string; unit: string; name: string }[] }[] = [];
+  for (const r of rows) {
+    const lines = (r.ingredients ?? [])
+      .map((i) => ({ qty: (i.qty ?? "").trim(), unit: i.unit ?? "", name: (i.name ?? "").trim() }))
+      .filter((i) => i.name);
+    const known = new Map((byRecipe.get(r.id) ?? []).map((it) => [lineKey(it), it]));
+    const missing = lines.filter((l) => !known.has(lineKey(l)));
+    if (!missing.length) linked.set(r.id, lines.map((l) => ({ ...known.get(lineKey(l))!, ...l })));
+    else todo.push({ r, known, missing });
+  }
+
+  // Link what's missing, a few recipes at a time.
+  let done = 0;
+  await inBatches(client ? todo.slice(0, maxNew) : [], 4, async ({ r, known, missing }) => {
+    try {
+      const got = await linkIngredients(client!, db, missing);
+      missing.forEach((l, i) => known.set(lineKey(l), { ...l, nevo: got[i]?.nevo ?? 0, g: got[i]?.g ?? 0 }));
+      const items = (r.ingredients ?? [])
+        .map((i) => ({ qty: (i.qty ?? "").trim(), unit: i.unit ?? "", name: (i.name ?? "").trim() }))
+        .filter((i) => i.name)
+        .map((l) => ({ ...known.get(lineKey(l))!, ...l }));
+      await db.from("recipe_nutrition").upsert({ recipe_id: r.id, items, updated_at: new Date().toISOString() });
+      linked.set(r.id, items);
+      done++;
+    } catch (e) {
+      console.error("PDF: voeding koppelen mislukt voor", r.title, String(e));
+    }
+  });
+  if (todo.length) console.log(`PDF: voeding gekoppeld voor ${done} van ${todo.length} recepten zonder koppeling`);
+
+  const codes = [...new Set([...linked.values()].flat().map((i) => i.nevo).filter(Boolean))];
+  if (!codes.length) return;
+  const { data: foodRows } = await db.from("nevo").select("*").in("code", codes);
+  const foods = new Map(((foodRows ?? []) as NevoFood[]).map((f) => [f.code, f]));
+
+  for (const r of rows) {
+    const items = linked.get(r.id);
+    if (!items) continue;
+    const t = totals(items, foods);
+    if (!(t.gram > 0)) continue;
+    const per = r.servings ? scaled(t, 1 / r.servings) : t;
+    const score = nutriScore(t);
+    r.nutrition =
+      `${r.servings ? "Per persoon" : "Hele recept"}: ${nl(per.kcal)} kcal · eiwit ${nl(per.eiwit)} g · koolhydraten ${nl(per.koolh)} g · ` +
+      `vet ${nl(per.vet)} g · zout ${nl(per.zout, 1)} g` +
+      (score ? ` · Nutri-Score ${score.letter} (indicatie)` : "");
+  }
+}
+
 
 // ---------------------------------------------------------------------------
 // Photos: the first photo of each recipe, small (max 700 px, JPEG), so the PDF stays a few MB
@@ -443,6 +519,13 @@ function layoutRecipe(doc: PDFDocument | null, f: Fonts, r: Row, image: PDFImage
     page.drawText("Notities", { x: M, y, size: z(14), font: f.bold, color: ROSE });
     y -= 10;
     for (const part of r.notes.trim().split(/\n+/)) para(part, f.body, z(11), INK, M, width, z(4.5));
+  }
+
+  // Nutrition per person, with the source NEVO asks for
+  if (r.nutrition) {
+    y -= 6;
+    para(r.nutrition, f.body, z(9.5), SAGE);
+    para(NEVO_SOURCE, f.body, z(7.5), MUTED);
   }
 
   // Who added it

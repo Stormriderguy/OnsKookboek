@@ -4,6 +4,7 @@ import { photoUrl } from "../supabase";
 import type { Recipe } from "../types";
 import { fmtDate, fmtQty, parseQty } from "../util";
 import { Meta } from "./Cookbook";
+import { Nutrition } from "./Nutrition";
 import { XIcon } from "./Icons";
 import { Sheet } from "./Sheet";
 
@@ -129,6 +130,7 @@ export function RecipeDetail({ recipe: r, canEdit, names, fav, onFav, onEdit, on
             )}
           </div>
         </div>
+        <Nutrition recipe={r} base={base} servings={servings || base} />
         {r.notes?.trim() && (
           <div className="notes">
             <h4>Notities</h4>

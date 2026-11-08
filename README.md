@@ -79,6 +79,20 @@ Gebruik nooit de `service_role`- of `secret`-sleutel: die geeft volledige toegan
 
 Voor de PDF moet `supabase/schema.sql` één keer opnieuw gedraaid worden (nieuwe map `kookboek-pdf`), en moeten `SUPABASE_SECRET_KEY` en `CRON_SECRET` in Vercel staan (zie hierboven).
 
+## Voedingswaarden en Nutri-Score
+
+Onder de bereiding van elk recept staat **Voedingswaarde**: per persoon (calorieën, eiwit, koolhydraten en suikers, vet en verzadigd vet, vezels, zout), het totaal voor het aantal personen van de teller, en een Nutri-Score A–E als indicatie. De waarden komen uit **NEVO-online 2025/9.0 van het RIVM** (gratis, met bronvermelding).
+
+- De eerste keer dat een recept wordt geopend, koppelt Claude elk ingrediënt aan een NEVO-product en rekent de hoeveelheid om naar grammen. Met **Koppelingen bekijken** kan iedereen een koppeling verbeteren.
+- De wekelijkse PDF (en **Nu bijwerken**) koppelt ook recepten die nog geen voedingswaarden hebben, maximaal 25 per keer.
+- De PDF heeft per recept een regel met de voedingswaarde per persoon en de Nutri-Score.
+
+**Eenmalig instellen**
+1. Draai `supabase/schema.sql` opnieuw (tabellen `nevo` en `recipe_nutrition`).
+2. Download het NEVO-bestand op [rivm.nl](https://www.rivm.nl/nederlands-voedingsstoffenbestand/gebruik-nevo-online/download-bestand) (je accepteert daar de voorwaarden) en zet `NEVO2025_v9.0.csv` in de projectmap. Het bestand gaat niet mee in Git.
+3. Zet in `.env` op je eigen computer: `SUPABASE_SECRET_KEY=` (de geheime sleutel uit Supabase).
+4. Draai `npm run nevo`. Dan staan de ±2300 producten in Supabase. Bij een nieuwe NEVO-versie: nieuw bestand, en opnieuw `npm run nevo`.
+
 ## Dag- en nachtmodus
 
 De app volgt de instelling van je telefoon (licht of donker). Met het maantje of zonnetje rechtsboven kies je het zelf; dat onthoudt de app op dat apparaat.

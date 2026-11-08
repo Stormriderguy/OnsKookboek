@@ -14,3 +14,9 @@ dist/
 .DS_Store
 Thumbs.db
 *.log
+
+# NEVO-bestand van het RIVM (zelf downloaden, niet verspreiden)
+NEVO*
+nevo*.csv
+nevo*.txt
+nevo*.zip

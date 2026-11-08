@@ -47,6 +47,30 @@ header.top .wrap { padding-block: 14px 12px; display: flex; flex-direction: colu
 h1 { font-family: var(--display); font-weight: 600; font-style: italic; font-size: clamp(1.7rem, 4vw, 2.2rem); letter-spacing: -.01em; margin: 0; line-height: 1 }
 .count { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums }
 .notes { margin-top: 18px }
+/* Voedingswaarde */
+.nutrition { margin-top: 22px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; max-width: 520px }
+.nscore { display: flex; flex-direction: column; gap: 4px }
+.nscore-bar { display: flex; align-items: flex-end; gap: 2px }
+.nscore-bar span { width: 30px; height: 30px; display: grid; place-items: center; color: #fff; font-weight: 700; border-radius: 6px; font-size: .9rem }
+.nscore-bar span.on { width: 40px; height: 40px; font-size: 1.25rem; box-shadow: 0 0 0 2px var(--card), 0 0 0 3px var(--ink) }
+.ns-a { background: #038141 } .ns-b { background: #85BB2F } .ns-c { background: #FECB02; color: #3A2229 !important } .ns-d { background: #EE8100 } .ns-e { background: #E63E11 }
+.nut-head { margin: 4px 0 0; font-weight: 700 }
+.nut-table { width: 100%; border-collapse: collapse; font-size: .92rem }
+.nut-table th { text-align: left; font-weight: 500; padding: 4px 0; border-bottom: 1px dashed var(--line) }
+.nut-table td { text-align: right; font-weight: 700; color: var(--basil); padding: 4px 0; border-bottom: 1px dashed var(--line); font-variant-numeric: tabular-nums }
+.nut-table tr.sub th { padding-left: 14px; color: var(--muted) }
+.nut-total { margin: 4px 0 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; font-size: .88rem }
+.nut-src { font-size: .72rem }
+.nut-links { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 8px }
+.nut-links li { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px }
+.nut-line { font-weight: 600 }
+.nut-match { font-size: .85rem; color: var(--muted) }
+.nut-match strong { color: var(--basil) }
+.nut-match.none { color: var(--tomato) }
+.nut-edit { display: flex; flex-direction: column; gap: 8px; margin-top: 6px }
+.nut-options { display: flex; flex-wrap: wrap; gap: 6px; max-height: 180px; overflow-y: auto }
+.nut-grams { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.nut-grams .in { width: 90px }
 .notes p { margin: 6px 0 0; white-space: pre-wrap; max-width: 65ch }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 4px }
 .book-pdf { display: flex; flex-direction: column; align-items: flex-start; gap: 6px }
