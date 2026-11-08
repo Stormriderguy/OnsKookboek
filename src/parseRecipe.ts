@@ -1,4 +1,4 @@
-import type { Ingredient } from "./types";
+import { KINDS, MAINS, MEALS, TASTES, type Ingredient } from "./types";
 
 /** What could be read from a recipe photo. Anything not found stays empty. */
 export type ParsedRecipe = {
@@ -8,6 +8,11 @@ export type ParsedRecipe = {
   minutes: number | null;
   ingredients: Ingredient[];
   steps: string[];
+  /** Categories the model suggests, only words from the app's own lists. */
+  meals: string[];
+  tastes: string[];
+  kinds: string[];
+  mains: string[];
   /** Where a picture of the finished dish is: which photo (0 = first) and its edges as fractions (0-1). */
   dishPhoto: { index: number; left: number; top: number; right: number; bottom: number } | null;
   /** A matching photo from a free photo bank (Openverse or Pexels, base64), found when the recipe had no photo yet. */
@@ -108,6 +113,12 @@ function dishPhotoOf(v: unknown): ParsedRecipe["dishPhoto"] {
   return { index: Math.round(photo) - 1, left, top, right, bottom };
 }
 
+/** Only the words that are in the app's list, in the list's order. */
+function fromList(v: unknown, list: readonly string[]): string[] {
+  const got = new Set(Array.isArray(v) ? v.map((x) => str(x).toLowerCase()) : []);
+  return list.filter((w) => got.has(w.toLowerCase()));
+}
+
 function stockPhotoOf(v: unknown): ParsedRecipe["stockPhoto"] {
   const o = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
   if (typeof o.data !== "string" || !o.data || typeof o.type !== "string" || !o.type.startsWith("image/")) return null;
@@ -148,6 +159,10 @@ export function normalizeParsed(raw: unknown): ParsedRecipe {
 
   return {
     title,
+    meals: fromList(r.meals, MEALS),
+    tastes: fromList(r.tastes, TASTES),
+    kinds: fromList(r.kinds, KINDS),
+    mains: fromList(r.mains, MAINS),
     dishPhoto: dishPhotoOf(r.dish_photo),
     stockPhoto: stockPhotoOf(r.stock_photo),
     description: str(r.description).slice(0, 400),

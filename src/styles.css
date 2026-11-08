@@ -70,6 +70,8 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(1.6rem, 4vw
 .chip { flex: none; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 5px 12px; font-size: .88rem; font-weight: 500 }
 .chip[aria-pressed="true"].meal, .chip[aria-pressed="true"].author, .chip.on { background: var(--basil); border-color: var(--basil); color: var(--basil-ink) }
 .chip[aria-pressed="true"].taste { background: var(--saffron); border-color: var(--saffron); color: var(--card) }
+.chip[aria-pressed="true"].kind { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+.chip[aria-pressed="true"].main { background: var(--basil-soft); border-color: var(--basil); color: var(--basil); font-weight: 600 }
 .chip[aria-pressed="true"].fav { background: var(--tomato); border-color: var(--tomato); color: var(--card) }
 
 /* Filter menu, top right */
@@ -130,6 +132,8 @@ main .wrap { padding-block: 22px 60px }
 .tag { border-radius: 6px; padding: 2px 8px; font-size: .78rem; font-weight: 600 }
 .tag.meal { background: var(--basil-soft); color: var(--basil) }
 .tag.taste { background: var(--saffron-soft); color: var(--saffron) }
+.tag.kind { background: var(--line); color: var(--ink) }
+.tag.main { border: 1px solid var(--line); color: var(--muted); padding-block: 1px }
 .time { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums }
 
 .empty { text-align: center; padding: 60px 16px; max-width: 460px; margin: 0 auto }

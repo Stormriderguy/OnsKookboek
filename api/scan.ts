@@ -17,9 +17,24 @@ type ImageType = (typeof IMAGE_TYPES)[number];
 const SUPABASE_URL = (process.env.VITE_SUPABASE_URL ?? "").replace(/\/+$/, "");
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
 
+// De vaste categorieën; gelijk houden met src/types.ts (de app negeert alles wat daar niet in staat).
+const MEALS = ["Ontbijt", "Lunch", "Diner", "Snack", "Dessert", "Bijgerecht"];
+const TASTES = ["Zoet", "Zout", "Hartig", "Pittig", "Zuur", "Fris"];
+const KINDS = [
+  "Soep", "Salade", "Pasta", "Rijst & noedels", "Ovenschotel", "Stamppot", "Stoofpot", "Wok", "Pizza",
+  "Quiche & hartige taart", "Sandwich & wrap", "Saus & dip", "Brood", "Taart & cake", "Koekjes", "Gebak",
+  "Toetje", "IJs", "Drankje", "Smoothie",
+];
+const MAINS = ["Vlees", "Kip", "Vis", "Schaaldieren", "Ei", "Vegetarisch", "Veganistisch"];
+const pick = (list: string[]) => ({ type: "array", items: { type: "string", enum: list } });
+
 const SCHEMA = {
   type: "object",
   properties: {
+    meals: pick(MEALS),
+    tastes: pick(TASTES),
+    kinds: pick(KINDS),
+    mains: pick(MAINS),
     title: { type: "string" },
     description: { type: "string" },
     servings: { type: "integer" },
@@ -57,7 +72,7 @@ const SCHEMA = {
       additionalProperties: false,
     },
   },
-  required: ["title", "description", "servings", "minutes", "ingredients", "steps", "dish", "dish_photo"],
+  required: ["title", "description", "servings", "minutes", "ingredients", "steps", "meals", "tastes", "kinds", "mains", "dish", "dish_photo"],
   additionalProperties: false,
 };
 
@@ -74,6 +89,11 @@ Regels:
 - minutes: de totale bereidingstijd in minuten als getal, of 0 als het er niet staat.
 - ingredients: elk ingrediënt apart. qty is de hoeveelheid zoals "200", "1,5" of "1/2" (leeg als er geen is). unit is de eenheid zoals g, kg, ml, dl, l, el, tl, snufje, stuks, teen, blik, bos, plak, kopje of naar smaak (leeg als er geen is). name is de rest van de regel. Zet elk woord in maar één veld. Voorbeelden: "200 g bloem" → qty "200", unit "g", name "bloem"; "2 kleine uien" → qty "2", unit "", name "kleine uien"; "zout" → qty "", unit "", name "zout".
 - steps: de bereiding in de juiste volgorde. Elke alinea is één stap: neem de hele alinea over als één tekst en splits hem niet op in losse zinnen. Zijn de stappen in het recept genummerd, dan is elk nummer één stap. Laat de nummers zelf weg.
+- meals, tastes, kinds, mains: kies zelf de passende categorieën voor dit recept, alleen uit de toegestane woorden. Kies alleen wat duidelijk klopt; een lege lijst mag.
+  - meals (wanneer eet je het): ${MEALS.join(", ")}. Hooguit 2.
+  - tastes (hoe smaakt het): ${TASTES.join(", ")}. Hooguit 2.
+  - kinds (soort gerecht): ${KINDS.join(", ")}. Meestal 1.
+  - mains (hoofdingrediënt): ${MAINS.join(", ")}. Kies Vlees, Kip, Vis of Schaaldieren als dat het hoofdbestanddeel is. Kies Vegetarisch als er geen vlees, kip, vis of schaaldieren in zit, en daarnaast Veganistisch als er ook geen ei, zuivel, honing of andere dierlijke producten in zitten. Kies Ei alleen als ei het hoofdbestanddeel is (zoals een omelet).
 - dish_photo: staat er op een foto een afbeelding van het klaargemaakte gerecht (het eten zelf, bijvoorbeeld de foto naast de tekst in een kookboek, of een foto van het bord)? Geef dan photo = het nummer van die foto (1 voor de eerste) en de randen van alleen die afbeelding van het eten, in procenten van de breedte en hoogte van de foto: left en right van links gemeten, top en bottom van boven gemeten (0 tot 100). Neem geen tekst, kantlijn of tafel mee als dat kan. Kies bij meer afbeeldingen de grootste. Is er geen afbeelding van het gerecht, of is het eten maar half of als smal randje te zien (bijvoorbeeld de rand van de volgende pagina), geef dan photo 0 en alle randen 0.
 - dish: zoek uit welk gerecht dit eigenlijk is, aan de hand van de naam, de ingrediënten en de bereiding. Bedenk ook onder welke namen hetzelfde of een vergelijkbaar gerecht in andere landen bekend is: veel gerechten hebben in Engeland, Australië, Amerika, Duitsland of Frankrijk een eigen, bekende naam, en een regionale of oudere naam in het eigen land. name_en: de naam waaronder Engelstaligen dit gerecht kennen (de echte, gangbare naam als die er is, niet een vertaling of omschrijving). search_terms: 4 korte zoektermen van 2 of hooguit 3 woorden om een foto van precies dit gerecht te vinden in een fotobank, de meest precieze eerst: eerst de bekende namen van het gerecht in andere landen (in die taal, bijvoorbeeld Engels of Duits), daarna een korte Engelse omschrijving van het eten zoals "potato gratin". Fotobanken vinden niets bij lange zoektermen. Geen merknamen. looks: in één Engelse zin hoe het klaargemaakte gerecht eruitziet (vorm, kleur, hoe het wordt opgediend).`;
 

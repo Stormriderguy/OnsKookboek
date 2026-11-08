@@ -89,6 +89,12 @@ Nodig: [Node.js](https://nodejs.org) (LTS).
 De recepten en foto's staan in Supabase, niet in de code. Wijzigingen aan de app raken de gegevens dus nooit.
 Elke push naar de branch `main` op GitHub zet Vercel automatisch online. In Vercel kun je bij **Deployments** met één klik terug naar een eerdere versie (**Promote** / **Instant Rollback**).
 
+## Categorieën
+
+Een recept kan labels krijgen in vier groepen: **Maaltijd** (ontbijt, diner, …), **Smaak** (zoet, hartig, …), **Soort gerecht** (soep, taart & cake, …) en **Hoofdingrediënt** (vlees, vis, vegetarisch, …). In het filtermenu kun je op elke groep filteren. De lijsten staan in `src/types.ts`; wil je er woorden bij, pas ze daar aan (en in `api/scan.ts`, zodat het scannen ze ook kent).
+
+Na het toevoegen van Soort gerecht en Hoofdingrediënt moet `supabase/schema.sql` één keer opnieuw gedraaid worden (SQL Editor → plakken → Run).
+
 ## Recept scannen van een foto
 
 In het receptformulier staat de knop **Recept scannen van foto**. De app stuurt de foto naar een kleine functie op Vercel (`api/scan.ts`), die hem laat lezen door Claude Haiku. Die leest het recept, ook bij pagina's met twee kolommen, en vult de naam, het aantal personen, de tijd, de ingrediënten en de stappen in. Controleer het resultaat altijd even.
@@ -102,6 +108,7 @@ In het receptformulier staat de knop **Recept scannen van foto**. De app stuurt 
 - Is een recept met de hand geschreven, dan schrijft Claude Opus de tekst eerst uit (Opus leest handschrift het best) en vult Haiku daarmee het formulier in. Een handgeschreven scan kost zo ±2 à 3 cent, een gedrukte ±0,2 cent.
 - Claude zoekt bij het lezen ook uit welk gerecht het is (bijvoorbeeld dat arretjescake in het Engels "hedgehog slice" heet) en hoe het eruitziet.
 - Alleen als er op de gescande foto's géén afbeelding van het gerecht staat, en het recept ook nog geen foto heeft, zoekt de app een passende foto en zet die er klein bij. Hij haalt een paar kandidaten op en Claude kiest de foto die echt dat gerecht laat zien; past er geen, dan komt er geen foto bij. Eerst via Openverse: foto's van heel internet (vooral Flickr) die vrij gebruikt mogen worden, zonder sleutel. Staat er een Pexels-sleutel in Vercel, dan zoekt Pexels mee. De melding noemt de maker en de licentie (bijvoorbeeld CC BY 2.0): die naamsvermelding hoort bij deze foto's. Past de foto niet, haal hem dan weg met het kruisje. Openverse heeft geen sleutel nodig. Geeft Openverse geen antwoord, dan komt er geen foto bij; de reden staat dan in het logboek van Vercel.
+- Bij het scannen stelt Claude ook categorieën voor (maaltijd, smaak, soort en hoofdingrediënt), maar alleen voor een groep waar je zelf nog niets hebt aangevinkt.
 - Onder **Herkende tekst bekijken** staat alles wat gelezen is.
 - De map `scanner/` is de oude scanner via Ollama op een eigen Linuxcomputer. Die is niet meer nodig.
 - Bij `npm run dev` op je eigen computer werkt scannen niet (de functie draait alleen op Vercel).

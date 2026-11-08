@@ -19,6 +19,8 @@ export function Cookbook({ uid, myName }: Props) {
   const [q, setQ] = useState("");
   const [meal, setMeal] = useState<string | null>(null);
   const [tastes, setTastes] = useState<Set<string>>(new Set());
+  const [kind, setKind] = useState<string | null>(null);
+  const [main, setMain] = useState<string | null>(null);
   const [onlyFav, setOnlyFav] = useState(false);
   const [author, setAuthor] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("new");
@@ -155,6 +157,8 @@ export function Cookbook({ uid, myName }: Props) {
       if (author && r.created_by !== author) return false;
       if (meal && !(r.meals ?? []).includes(meal)) return false;
       for (const t of tastes) if (!(r.tastes ?? []).includes(t)) return false;
+      if (kind && !(r.kinds ?? []).includes(kind)) return false;
+      if (main && !(r.mains ?? []).includes(main)) return false;
       if (needle) {
         const hay = [r.title, r.description ?? "", ...(r.ingredients ?? []).map((i) => i.name)].join(" ").toLowerCase();
         if (!hay.includes(needle)) return false;
@@ -165,7 +169,7 @@ export function Cookbook({ uid, myName }: Props) {
     else if (sort === "time") list.sort((a, b) => (a.minutes || 9999) - (b.minutes || 9999));
     else list.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
     return list;
-  }, [recipes, q, meal, tastes, onlyFav, author, favs, sort]);
+  }, [recipes, q, meal, tastes, kind, main, onlyFav, author, favs, sort]);
 
   const toggleTaste = (t: string) =>
     setTastes((s) => {
@@ -178,6 +182,8 @@ export function Cookbook({ uid, myName }: Props) {
   const clearFilters = () => {
     setMeal(null);
     setTastes(new Set());
+    setKind(null);
+    setMain(null);
     setOnlyFav(false);
     setAuthor(null);
   };
@@ -187,6 +193,8 @@ export function Cookbook({ uid, myName }: Props) {
   if (onlyFav) active.push({ key: "fav", label: "♥ Favorieten", remove: () => setOnlyFav(false) });
   if (meal) active.push({ key: "meal", label: meal, remove: () => setMeal(null) });
   for (const t of tastes) active.push({ key: "t-" + t, label: t, remove: () => toggleTaste(t) });
+  if (kind) active.push({ key: "kind", label: kind, remove: () => setKind(null) });
+  if (main) active.push({ key: "main", label: main, remove: () => setMain(null) });
   if (author) {
     const a = authors.find((x) => x.id === author);
     active.push({ key: "author", label: `Door ${a?.name ?? "iemand"}`, remove: () => setAuthor(null) });
@@ -236,6 +244,10 @@ export function Cookbook({ uid, myName }: Props) {
               setMeal={setMeal}
               tastes={tastes}
               toggleTaste={toggleTaste}
+              kind={kind}
+              setKind={setKind}
+              main={main}
+              setMain={setMain}
               author={author}
               setAuthor={setAuthor}
               authors={authors}
@@ -384,6 +396,12 @@ export function Meta({ recipe: r }: { recipe: Recipe }) {
       ))}
       {(r.tastes ?? []).map((t) => (
         <span key={t} className="tag taste">{t}</span>
+      ))}
+      {(r.kinds ?? []).map((k) => (
+        <span key={k} className="tag kind">{k}</span>
+      ))}
+      {(r.mains ?? []).map((m) => (
+        <span key={m} className="tag main">{m}</span>
       ))}
       {r.minutes ? (
         <span className="time">

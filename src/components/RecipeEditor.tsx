@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { MAX_SCAN_PHOTOS, ScanError, scanWithAI } from "../aiScan";
 import { mergeIngredients, mergeSteps, parsedAsText, type ParsedRecipe } from "../parseRecipe";
 import { BUCKET, photoUrl, supabase } from "../supabase";
-import { MEALS, TASTES, UNITS, type Recipe, type RecipeInput } from "../types";
+import { KINDS, MAINS, MEALS, TASTES, UNITS, type Recipe, type RecipeInput } from "../types";
 import { cropSmall, shrink } from "../util";
 import { CameraIcon, XIcon } from "./Icons";
 import { Sheet } from "./Sheet";
@@ -28,6 +28,8 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
   const [description, setDescription] = useState(r?.description ?? "");
   const [meals, setMeals] = useState<Set<string>>(new Set(r?.meals ?? []));
   const [tastes, setTastes] = useState<Set<string>>(new Set(r?.tastes ?? []));
+  const [kinds, setKinds] = useState<Set<string>>(new Set(r?.kinds ?? []));
+  const [mains, setMains] = useState<Set<string>>(new Set(r?.mains ?? []));
   const [minutes, setMinutes] = useState(r?.minutes ? String(r.minutes) : "");
   const [servings, setServings] = useState(r?.servings ? String(r.servings) : "4");
   const [ings, setIngs] = useState<IngRow[]>(() => {
@@ -121,6 +123,8 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
       description: description.trim(),
       meals: MEALS.filter((m) => meals.has(m)),
       tastes: TASTES.filter((t) => tastes.has(t)),
+      kinds: KINDS.filter((k) => kinds.has(k)),
+      mains: MAINS.filter((m) => mains.has(m)),
       minutes: parseInt(minutes, 10) || null,
       servings: parseInt(servings, 10) || null,
       ingredients: ings
@@ -231,6 +235,17 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
       if (p.description && !description.trim()) setDescription(p.description);
       if (p.servings) setServings(String(p.servings));
       if (p.minutes && !minutes) setMinutes(String(p.minutes));
+      // Categories: only for a group where nothing is chosen yet, so your own choice stays.
+      const suggested: string[] = [];
+      const suggest = (have: Set<string>, found: string[], set: (s: Set<string>) => void) => {
+        if (have.size || !found.length) return;
+        set(new Set(found));
+        suggested.push(...found);
+      };
+      suggest(meals, p.meals, setMeals);
+      suggest(tastes, p.tastes, setTastes);
+      suggest(kinds, p.kinds, setKinds);
+      suggest(mains, p.mains, setMains);
       // Add only what isn't in the form yet, so scanning a second page (or the same page again) adds no doubles.
       const ingMerge = mergeIngredients(
         ings.filter((r) => r.qty.trim() || r.name.trim()),
@@ -259,6 +274,7 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
             (skipped ? ` (${skipped} stond${skipped === 1 ? "" : "en"} er al en ${skipped === 1 ? "is" : "zijn"} overgeslagen)` : "") +
             ". " +
             dish +
+            (suggested.length ? `Categorieën voorgesteld: ${suggested.join(", ")}. ` : "") +
             "Controleer alles even, de herkenning maakt soms fouten.",
       });
     } catch (e) {
@@ -420,6 +436,26 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
             {TASTES.map((t) => (
               <button key={t} className="chip taste" type="button" aria-pressed={tastes.has(t)} onClick={() => toggle(tastes, t, setTastes)}>
                 {t}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset className="field">
+          <legend className="legend">Soort gerecht</legend>
+          <div className="chips">
+            {KINDS.map((k) => (
+              <button key={k} className="chip kind" type="button" aria-pressed={kinds.has(k)} onClick={() => toggle(kinds, k, setKinds)}>
+                {k}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset className="field">
+          <legend className="legend">Hoofdingrediënt</legend>
+          <div className="chips">
+            {MAINS.map((m) => (
+              <button key={m} className="chip main" type="button" aria-pressed={mains.has(m)} onClick={() => toggle(mains, m, setMains)}>
+                {m}
               </button>
             ))}
           </div>

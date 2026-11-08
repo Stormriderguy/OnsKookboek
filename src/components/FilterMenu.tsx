@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { MEALS, TASTES, type SortKey } from "../types";
+import { KINDS, MAINS, MEALS, TASTES, type SortKey } from "../types";
 import { FilterIcon } from "./Icons";
 
 export type Author = { id: string; name: string };
@@ -12,6 +12,10 @@ type Props = {
   setMeal: (v: string | null) => void;
   tastes: Set<string>;
   toggleTaste: (t: string) => void;
+  kind: string | null;
+  setKind: (v: string | null) => void;
+  main: string | null;
+  setMain: (v: string | null) => void;
   author: string | null;
   setAuthor: (v: string | null) => void;
   authors: Author[];
@@ -155,6 +159,26 @@ export function FilterMenu(p: Props) {
               {TASTES.map((t) => (
                 <button key={t} className="chip taste" type="button" aria-pressed={p.tastes.has(t)} onClick={() => p.toggleTaste(t)}>
                   {t}
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          <Section title="Soort gerecht" summary={p.kind ?? ""} collapsible={isPhone}>
+            <div className="chips">
+              {KINDS.map((k) => (
+                <button key={k} className="chip kind" type="button" aria-pressed={p.kind === k} onClick={() => p.setKind(p.kind === k ? null : k)}>
+                  {k}
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          <Section title="Hoofdingrediënt" summary={p.main ?? ""} collapsible={isPhone}>
+            <div className="chips">
+              {MAINS.map((m) => (
+                <button key={m} className="chip main" type="button" aria-pressed={p.main === m} onClick={() => p.setMain(p.main === m ? null : m)}>
+                  {m}
                 </button>
               ))}
             </div>
