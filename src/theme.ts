@@ -4,7 +4,7 @@
 export type Theme = "light" | "dark";
 
 const KEY = "theme";
-const BAR = { light: "#FBF4F3", dark: "#1A1316" }; // colour of the phone's top bar, same as --paper
+const BAR = { light: "#FBF4F3", dark: "#241A1F" }; // colour of the phone's top bar, same as --paper
 
 const systemTheme = (): Theme => (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
 
