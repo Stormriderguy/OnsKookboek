@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { canShareFile, recipePdf, saveFile, shareFile } from "../pdf";
 import { photoUrl } from "../supabase";
 import type { Recipe } from "../types";
 import { fmtDate, fmtQty, parseQty } from "../util";
@@ -14,12 +15,14 @@ type Props = {
   fav: boolean;
   onFav: () => void;
   onEdit: () => void;
+  /** Make your own copy to change and save under your own name. */
+  onCopy: () => void;
   onDelete: () => Promise<void>;
   onClose: () => void;
   onNeedNames: () => void;
 };
 
-export function RecipeDetail({ recipe: r, canEdit, names, fav, onFav, onEdit, onDelete, onClose, onNeedNames }: Props) {
+export function RecipeDetail({ recipe: r, canEdit, names, fav, onFav, onEdit, onCopy, onDelete, onClose, onNeedNames }: Props) {
   const base = r.servings || 0;
   const [servings, setServings] = useState(base);
   const [confirming, setConfirming] = useState(false);
@@ -66,6 +69,12 @@ export function RecipeDetail({ recipe: r, canEdit, names, fav, onFav, onEdit, on
       <div className="sec">
         <h2>{r.title || "Naamloos recept"}</h2>
         <Meta recipe={r} />
+        <div className="actions">
+          <ShareButton id={r.id} title={r.title} />
+          <button className="btn" type="button" onClick={onCopy} title="Een eigen kopie maken om aan te passen">
+            Kopiëren
+          </button>
+        </div>
         {r.description && <p className="desc">{r.description}</p>}
         <div className="cols">
           <div>
@@ -149,6 +158,64 @@ export function RecipeDetail({ recipe: r, canEdit, names, fav, onFav, onEdit, on
         )}
       </div>
     </Sheet>
+  );
+}
+
+/**
+ * "Delen of afdrukken": makes a PDF of this recipe. On a phone the share menu opens (WhatsApp, mail, print …);
+ * a phone only allows that straight after a tap, so when making the PDF took a moment, a second tap shares it.
+ * Without a share menu (most computers) the PDF is downloaded, to print or mail from there.
+ */
+function ShareButton({ id, title }: { id: string; title: string }) {
+  const [state, setState] = useState<"idle" | "busy" | "ready" | "error">("idle");
+  const [file, setFile] = useState<File | null>(null);
+
+  async function make() {
+    setState("busy");
+    const pdf = await recipePdf(id, title);
+    if (!pdf) {
+      setState("error");
+      return;
+    }
+    if (!canShareFile(pdf)) {
+      saveFile(pdf, pdf.name);
+      setState("idle");
+      return;
+    }
+    // Try at once; if the phone says the tap was too long ago, wait for a second tap.
+    if (await shareFile(pdf, title)) setState("idle");
+    else {
+      setFile(pdf);
+      setState("ready");
+    }
+  }
+
+  if (state === "ready" && file) {
+    return (
+      <button
+        className="btn primary"
+        type="button"
+        onClick={async () => {
+          await shareFile(file, title);
+          setState("idle");
+          setFile(null);
+        }}
+      >
+        PDF delen
+      </button>
+    );
+  }
+  return (
+    <>
+      <button className="btn" type="button" onClick={make} disabled={state === "busy"}>
+        {state === "busy" ? "PDF maken…" : "Delen of afdrukken"}
+      </button>
+      {state === "error" && (
+        <span className="hint" role="status">
+          Dat lukte niet. Probeer het opnieuw.
+        </span>
+      )}
+    </>
   );
 }
 

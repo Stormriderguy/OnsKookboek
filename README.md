@@ -62,10 +62,21 @@ De code staat in [github.com/Stormriderguy/OnsKookboek](https://github.com/Storm
    - `VITE_SUPABASE_URL`: de Project URL uit Supabase (knop **Connect**)
    - `VITE_SUPABASE_ANON_KEY` (of `VITE_SUPABASE_PUBLISHABLE_KEY`, zoals Supabase hem noemt): de **publishable**- of **anon**-sleutel uit Supabase
    - `ANTHROPIC_API_KEY`: de API-sleutel van Claude voor het scannen (maken op console.anthropic.com → **API Keys**). Alleen voor **Production**, en zet **Sensitive** aan. Deze naam begint bewust niet met `VITE_`: zo blijft de sleutel op de server van Vercel en komt hij nooit in de browser.
+   - `SUPABASE_SECRET_KEY`: de **geheime** sleutel van Supabase (Project Settings → API Keys → Secret keys, begint met `sb_secret_`). Alleen voor de wekelijkse PDF: daarmee leest de functie alle recepten en slaat ze de PDF op. Alleen **Production**, **Sensitive** aan. Nooit met `VITE_` ervoor en nooit in de app of in Git.
+   - `CRON_SECRET`: een zelfbedacht lang wachtwoord (bijvoorbeeld 30 willekeurige letters en cijfers). Vercel stuurt het mee als het de wekelijkse taak start, zodat niemand anders die kan starten. Alleen **Production**, **Sensitive** aan.
    - `PEXELS_API_KEY` (optioneel): sleutel van pexels.com/api, als extra bron voor een passende foto naast Openverse. Pexels gaf in november 2026 geen nieuwe sleutels uit; zonder deze sleutel werkt alles gewoon.
 3. Start een nieuwe deploy (**Deployments → ⋯ → Redeploy**), zodat de sleutels worden meegenomen.
 
 Gebruik nooit de `service_role`- of `secret`-sleutel: die geeft volledige toegang tot de database.
+
+## Kookboek als PDF, delen en kopiëren
+
+- **Het hele kookboek als PDF:** elke maandagnacht maakt Vercel automatisch een PDF van alle recepten (voorblad, inhoudsopgave, per recept een pagina met een kleine foto). Alleen de nieuwste wordt bewaard, in Supabase (map `kookboek-pdf`, alleen voor leden). Downloaden kan in het menu **Filters** → **Kookboek als PDF**. Met **Nu bijwerken** maak je hem meteen opnieuw (hooguit eens per 10 minuten).
+- **Eén recept delen of afdrukken:** in een recept staat **Delen of afdrukken**. Op de telefoon opent het deelmenu (WhatsApp, mail, afdrukken …); op de computer wordt de PDF gedownload.
+- **Recepten passen op één pagina:** is een recept lang, dan wordt de foto kleiner en komen ingrediënten en bereiding naast elkaar te staan. Alleen een heel lang recept loopt door op een volgende pagina.
+- **Kopiëren:** met **Kopiëren** maak je een eigen versie van een recept van iemand anders. Je past aan wat je wilt en slaat het op als nieuw recept op je eigen naam; het origineel blijft zoals het is. De foto's worden mee gekopieerd.
+
+Voor de PDF moet `supabase/schema.sql` één keer opnieuw gedraaid worden (nieuwe map `kookboek-pdf`), en moeten `SUPABASE_SECRET_KEY` en `CRON_SECRET` in Vercel staan (zie hierboven).
 
 ## Dag- en nachtmodus
 

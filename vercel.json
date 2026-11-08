@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/pdf.ts": { "maxDuration": 300 },
+    "api/scan.ts": { "maxDuration": 120 }
+  },
+  "crons": [{ "path": "/api/pdf", "schedule": "0 3 * * 1" }]
+}

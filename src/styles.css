@@ -46,6 +46,10 @@ header.top .wrap { padding-block: 14px 12px; display: flex; flex-direction: colu
 .brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; min-width: 0 }
 h1 { font-family: var(--display); font-weight: 600; font-style: italic; font-size: clamp(1.7rem, 4vw, 2.2rem); letter-spacing: -.01em; margin: 0; line-height: 1 }
 .count { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 4px }
+.book-pdf { display: flex; flex-direction: column; align-items: flex-start; gap: 6px }
+.linkish { border: 0; background: none; padding: 0; color: var(--basil); text-decoration: underline; font-size: inherit }
+.linkish:disabled { opacity: .6 }
 .brand-side { display: flex; align-items: center; gap: 10px; align-self: center }
 .theme-btn { width: 36px; height: 36px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--basil); display: grid; place-items: center; padding: 0 }
 .theme-btn:hover { border-color: var(--muted) }

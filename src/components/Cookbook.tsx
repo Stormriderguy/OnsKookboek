@@ -27,7 +27,7 @@ export function Cookbook({ uid, myName }: Props) {
   const [sort, setSort] = useState<SortKey>("new");
 
   const [openId, setOpenId] = useState<string | null>(null);
-  const [editing, setEditing] = useState<{ recipe: Recipe | null } | null>(null);
+  const [editing, setEditing] = useState<{ recipe: Recipe | null; copyOf?: Recipe } | null>(null);
   const [toastMsg, setToastMsg] = useState("");
   const toastTimer = useRef<number | undefined>(undefined);
 
@@ -332,6 +332,7 @@ export function Cookbook({ uid, myName }: Props) {
           fav={favs.has(open.id)}
           onFav={() => toggleFav(open.id)}
           onEdit={() => open.created_by === uid && setEditing({ recipe: open })}
+          onCopy={() => setEditing({ recipe: null, copyOf: open })}
           onDelete={() => deleteRecipe(open)}
           onClose={() => setOpenId(null)}
           onNeedNames={loadNames}
@@ -340,13 +341,14 @@ export function Cookbook({ uid, myName }: Props) {
       {editing && (
         <RecipeEditor
           recipe={editing.recipe}
+          copyOf={editing.copyOf}
           uid={uid}
           onCancel={() => setEditing(null)}
           onSaved={(row, isNew) => {
             upsertLocal(row);
             setEditing(null);
             setOpenId(row.id);
-            toast(isNew ? "Recept toegevoegd" : "Recept bijgewerkt");
+            toast(editing.copyOf ? "Kopie opgeslagen" : isNew ? "Recept toegevoegd" : "Recept bijgewerkt");
           }}
         />
       )}

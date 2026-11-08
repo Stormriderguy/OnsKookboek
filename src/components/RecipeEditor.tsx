@@ -16,28 +16,33 @@ const emptyStep = (): StepRow => ({ key: newKey(), text: "" });
 
 type Props = {
   recipe: Recipe | null;
+  /** Start a new recipe as a copy of this one (someone else's recipe, to change and save under your own name). */
+  copyOf?: Recipe | null;
   uid: string;
   onCancel: () => void;
   onSaved: (row: Recipe, isNew: boolean) => void;
 };
 
-export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
+export function RecipeEditor({ recipe: r, copyOf, uid, onCancel, onSaved }: Props) {
   const db = supabase!;
   const isNew = !r;
-  const [title, setTitle] = useState(r?.title ?? "");
-  const [description, setDescription] = useState(r?.description ?? "");
-  const [meals, setMeals] = useState<Set<string>>(new Set(r?.meals ?? []));
-  const [tastes, setTastes] = useState<Set<string>>(new Set(r?.tastes ?? []));
-  const [kinds, setKinds] = useState<Set<string>>(new Set(r?.kinds ?? []));
-  const [mains, setMains] = useState<Set<string>>(new Set(r?.mains ?? []));
-  const [minutes, setMinutes] = useState(r?.minutes ? String(r.minutes) : "");
-  const [servings, setServings] = useState(r?.servings ? String(r.servings) : "4");
+  const isCopy = isNew && !!copyOf;
+  // Where the form starts from: the recipe being edited, or the one being copied.
+  const src = r ?? copyOf ?? null;
+  const [title, setTitle] = useState(src?.title ?? "");
+  const [description, setDescription] = useState(src?.description ?? "");
+  const [meals, setMeals] = useState<Set<string>>(new Set(src?.meals ?? []));
+  const [tastes, setTastes] = useState<Set<string>>(new Set(src?.tastes ?? []));
+  const [kinds, setKinds] = useState<Set<string>>(new Set(src?.kinds ?? []));
+  const [mains, setMains] = useState<Set<string>>(new Set(src?.mains ?? []));
+  const [minutes, setMinutes] = useState(src?.minutes ? String(src.minutes) : "");
+  const [servings, setServings] = useState(src?.servings ? String(src.servings) : "4");
   const [ings, setIngs] = useState<IngRow[]>(() => {
-    const rows = (r?.ingredients ?? []).map((i) => ({ key: newKey(), qty: i.qty ?? "", unit: i.unit ?? "", name: i.name ?? "" }));
+    const rows = (src?.ingredients ?? []).map((i) => ({ key: newKey(), qty: i.qty ?? "", unit: i.unit ?? "", name: i.name ?? "" }));
     return rows.length ? rows : [emptyIng(), emptyIng(), emptyIng()];
   });
   const [steps, setSteps] = useState<StepRow[]>(() => {
-    const rows = (r?.steps ?? []).map((text) => ({ key: newKey(), text }));
+    const rows = (src?.steps ?? []).map((text) => ({ key: newKey(), text }));
     return rows.length ? rows : [emptyStep(), emptyStep()];
   });
   const [photos, setPhotos] = useState<string[]>(r?.photos ?? []);
@@ -55,6 +60,28 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
   useEffect(() => {
     if (isNew) titleRef.current?.focus();
   }, [isNew]);
+
+  // A copy gets its own copies of the photos, so it keeps them when the original recipe (or a photo in it)
+  // is deleted later. Until it is saved they count as uploaded now: cancelling removes them again.
+  const copying = useRef(false);
+  useEffect(() => {
+    if (!isCopy || copying.current) return;
+    copying.current = true;
+    const from = copyOf?.photos ?? [];
+    setUploading((n) => n + from.length);
+    (async () => {
+      for (const path of from) {
+        const ext = path.split(".").pop() || "jpg";
+        const to = `${uid}/${crypto.randomUUID()}.${ext}`;
+        const { error } = await db.storage.from(BUCKET).copy(path, to);
+        if (!error) {
+          uploadedNow.current.add(to);
+          setPhotos((p) => [...p, to]);
+        }
+        setUploading((n) => n - 1);
+      }
+    })();
+  }, [isCopy, copyOf, uid, db]);
 
   // After "+ Ingrediënt" or "+ Stap", put the cursor in the new row.
   useEffect(() => {
@@ -300,15 +327,21 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
   const setIng = (key: string, patch: Partial<IngRow>) => setIngs((rows) => rows.map((x) => (x.key === key ? { ...x, ...patch } : x)));
 
   return (
-    <Sheet label={isNew ? "Nieuw recept" : "Recept bewerken"} onClose={cancel}>
+    <Sheet label={isCopy ? "Recept kopiëren" : isNew ? "Nieuw recept" : "Recept bewerken"} onClose={cancel}>
       <div className="sheet-head">
         <button className="close" type="button" aria-label="Annuleren" onClick={cancel}>
           <XIcon />
         </button>
-        <strong className="grow sheet-title">{isNew ? "Nieuw recept" : "Recept bewerken"}</strong>
+        <strong className="grow sheet-title">{isCopy ? "Recept kopiëren" : isNew ? "Nieuw recept" : "Recept bewerken"}</strong>
       </div>
 
       <div className="sec">
+        {isCopy && (
+          <p className="note">
+            Je maakt een eigen kopie van {copyOf?.created_by_name ? `het recept van ${copyOf.created_by_name}` : "dit recept"}. Pas aan wat je wilt en
+            sla het op: het wordt een nieuw recept op jouw naam. Het origineel blijft zoals het is.
+          </p>
+        )}
         <div className="scanbox">
           {pending.length === 0 ? (
             <label className="btn scan-btn">

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { KINDS, MAINS, MEALS, TASTES, type SortKey } from "../types";
+import { BookPdf } from "./BookPdf";
 import { FilterIcon } from "./Icons";
 
 export type Author = { id: string; name: string };
@@ -213,6 +214,11 @@ export function FilterMenu(p: Props) {
               ))}
             </select>
           </Section>
+
+          <div className="menu-sec">
+            <span className="flabel">Het hele kookboek</span>
+            <BookPdf />
+          </div>
 
           <div className="menu-foot">
             <button className="btn ghost" type="button" onClick={p.onClear} disabled={!p.activeCount}>

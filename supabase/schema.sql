@@ -383,6 +383,22 @@ create policy "foto's uploaden leden"    on storage.objects for insert to authen
 create policy "foto's verwijderen leden" on storage.objects for delete to authenticated using (bucket_id = 'recipe-photos' and (select public.is_member()));
 
 -- ============================================================
+-- Het hele kookboek als PDF: bucket 'kookboek-pdf' (niet openbaar)
+-- De wekelijkse functie in Vercel (api/pdf.ts) schrijft het bestand met de geheime sleutel;
+-- leden mogen het alleen downloaden.
+-- ============================================================
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('kookboek-pdf', 'kookboek-pdf', false, 52428800, array['application/pdf'])
+on conflict (id) do update
+  set public = excluded.public,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "kookboek-pdf lezen leden" on storage.objects;
+create policy "kookboek-pdf lezen leden" on storage.objects for select to authenticated using (bucket_id = 'kookboek-pdf' and (select public.is_member()));
+
+-- ============================================================
 -- Realtime: wijzigingen in recepten live doorsturen
 -- ============================================================
 
