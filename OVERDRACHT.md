@@ -16,7 +16,7 @@ Lees ook `CLAUDE.md` (projectopdracht) en `README.md` (stappen voor de eigenaar)
 - Na elke wijziging aan `supabase/schema.sql` moet de eigenaar dat script opnieuw draaien in Supabase (SQL Editor → Run). Het script kan veilig opnieuw draaien; als resultaat verschijnt "off".
 
 ## Stack en opbouw
-Vite + React + TypeScript, gewone CSS met design tokens (basilicumgroen, licht en donker thema), `@supabase/supabase-js`, en `@anthropic-ai/sdk` voor het scannen (alleen in de Vercel-functie).
+Vite + React + TypeScript, gewone CSS met design tokens (stijl A oudroze en salie, licht en donker thema), `@supabase/supabase-js`, en `@anthropic-ai/sdk` voor het scannen (alleen in de Vercel-functie).
 - `src/App.tsx`: sessie en profiel; toont het codescherm (`Join`) of het kookboek (`Cookbook`).
 - `src/components/Join.tsx`: gezamenlijke code + voornaam + achternaam.
 - `src/components/Cookbook.tsx`: kopbalk, live recepten (Realtime), favorieten, filters en zoeken, kaarten.
@@ -39,6 +39,8 @@ Vite + React + TypeScript, gewone CSS met design tokens (basilicumgroen, licht e
 - De naam van wie een recept plaatst, wordt in het recept zelf opgeslagen (`created_by_name`), en staat op elke kaart ("door …").
 - **Alleen wie een recept plaatste, mag het bewerken en verwijderen**, in de app én in de database. De gebruiker bevestigde ook verwijderen voor alleen de plaatser.
 - Filters in het menu rechtsboven: favorieten, maaltijd, smaak, **soort gerecht**, **hoofdingrediënt**, **Toegevoegd door**, sorteren. Actieve filters staan als knopjes onder de kopbalk.
+- **Stijl A "oudroze en salie" (8 nov 2026, gekozen uit drie voorstellen: oudroze/salie, lavendel/perzik, terracotta/room):** tokens in `src/styles.css` (licht: papier #FBF4F3, hoofdkleur #B34D6E, salie #5E7F62, framboos #B8324F; donker: #1A1316 / #E79AB3 / #9FC2A3 / #F07A8E), Fraunces + Nunito in `index.html`, hoeken 18px, app-icoon en manifest in oudroze (`npm run icons`).
+- **Dag/nachtknop:** `ThemeButton` rechtsboven naast het aantal recepten. Volgt de telefoon tot iemand kiest; de keuze staat per apparaat in `localStorage` (`theme`), `src/theme.ts` zet `data-theme` en de kleur van de telefoonbalk. Een scriptje in `index.html` past de keuze toe vóór de pagina verschijnt (geen flits). Getest: omschakelen, onthouden na herladen, telefoon- en computerbreedte.
 - **Categorieën (8 nov 2026):** naast Maaltijd en Smaak twee nieuwe groepen, lijsten in `src/types.ts` (`KINDS`: Soep, Salade, Pasta, Rijst & noedels, Ovenschotel, Stamppot, Stoofpot, Wok, Pizza, Quiche & hartige taart, Sandwich & wrap, Saus & dip, Brood, Taart & cake, Koekjes, Gebak, Toetje, IJs, Drankje, Smoothie; `MAINS`: Vlees, Kip, Vis, Schaaldieren, Ei, Vegetarisch, Veganistisch). Kolommen `kinds` en `mains` (text[]) in `recipes`; **schema.sql moet opnieuw gedraaid worden** (`alter table … add column if not exists`). In het formulier meerdere kiezen, in het filter één tegelijk (zoals Maaltijd). Labels op kaart en detail: soort donker, hoofdingrediënt omlijnd. Scannen stelt alle vier groepen voor (enum in het schema; lijsten staan dubbel in `api/scan.ts`, gelijk houden met `types.ts`); alleen ingevuld bij een groep waar nog niets gekozen is. Gelegenheid en Herkomst zijn voorgesteld maar nog niet gebouwd.
 - Het aantal recepten volgt filters en zoeken; op de telefoon staat het rechts uitgelijnd.
 - Telefoonindeling: titel bovenaan, daaronder Filters en + Recept naast elkaar, daaronder de zoekbalk.

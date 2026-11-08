@@ -67,6 +67,10 @@ De code staat in [github.com/Stormriderguy/OnsKookboek](https://github.com/Storm
 
 Gebruik nooit de `service_role`- of `secret`-sleutel: die geeft volledige toegang tot de database.
 
+## Dag- en nachtmodus
+
+De app volgt de instelling van je telefoon (licht of donker). Met het maantje of zonnetje rechtsboven kies je het zelf; dat onthoudt de app op dat apparaat.
+
 ## De app op je telefoon zetten
 
 Open het adres van de app op je telefoon.

@@ -1,28 +1,29 @@
-/* Design tokens taken over from the first version (kookboek.html). */
+/* Design tokens. Stijl A "oudroze en salie" (8 nov 2026): oudroze als hoofdkleur (de namen "basil" e.d. zijn
+   gebleven uit de eerste versie), saliegroen voor smaaklabels, frambozenrood voor favorieten en verwijderen. */
 :root {
-  --paper: #F4F6EF; --card: #FFFFFF; --ink: #1D2720; --muted: #5B675D; --line: #DBE1D6;
-  --basil: #2D683D; --basil-ink: #FFFFFF; --basil-soft: #E1EDE0;
-  --saffron: #B97A06; --saffron-soft: #FAEFD3; --tomato: #C2402C; --tomato-soft: #F8E3DE;
-  --scrim: rgba(20, 28, 22, .45);
-  --shadow: 0 1px 2px rgba(29, 39, 32, .06), 0 8px 22px rgba(29, 39, 32, .07);
-  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-  --body: "Figtree", "Segoe UI", system-ui, sans-serif;
-  --r: 14px;
+  --paper: #FBF4F3; --card: #FFFFFF; --ink: #3A2229; --muted: #85666E; --line: #EFDCE0;
+  --basil: #B34D6E; --basil-ink: #FFFFFF; --basil-soft: #F6DDE4;
+  --saffron: #5E7F62; --saffron-soft: #E3ECE2; --tomato: #B8324F; --tomato-soft: #F8DEE3;
+  --scrim: rgba(40, 20, 28, .45);
+  --shadow: 0 1px 2px rgba(58, 34, 41, .06), 0 8px 22px rgba(58, 34, 41, .08);
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --r: 18px;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #121813; --card: #1B231D; --ink: #E7ECE4; --muted: #9DA99F; --line: #2D3830;
-    --basil: #7CC08C; --basil-ink: #0F1A12; --basil-soft: #213325;
-    --saffron: #E9B94F; --saffron-soft: #352B14; --tomato: #F0806C; --tomato-soft: #3A1F1A;
+    --paper: #1A1316; --card: #241A1E; --ink: #F3E6EA; --muted: #B79BA4; --line: #3A2A30;
+    --basil: #E79AB3; --basil-ink: #2A1018; --basil-soft: #3E2430;
+    --saffron: #9FC2A3; --saffron-soft: #22302A; --tomato: #F07A8E; --tomato-soft: #3D1E25;
     --scrim: rgba(0, 0, 0, .6); --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 22px rgba(0, 0, 0, .25);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --paper: #121813; --card: #1B231D; --ink: #E7ECE4; --muted: #9DA99F; --line: #2D3830;
-  --basil: #7CC08C; --basil-ink: #0F1A12; --basil-soft: #213325;
-  --saffron: #E9B94F; --saffron-soft: #352B14; --tomato: #F0806C; --tomato-soft: #3A1F1A;
+  --paper: #1A1316; --card: #241A1E; --ink: #F3E6EA; --muted: #B79BA4; --line: #3A2A30;
+  --basil: #E79AB3; --basil-ink: #2A1018; --basil-soft: #3E2430;
+  --saffron: #9FC2A3; --saffron-soft: #22302A; --tomato: #F07A8E; --tomato-soft: #3D1E25;
   --scrim: rgba(0, 0, 0, .6); --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 22px rgba(0, 0, 0, .25);
   color-scheme: dark;
 }
@@ -43,8 +44,11 @@ header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; b
 header.top .wrap { padding-block: 14px 12px; display: flex; flex-direction: column; gap: 12px }
 .bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap }
 .brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; min-width: 0 }
-h1 { font-family: var(--display); font-weight: 800; font-size: clamp(1.6rem, 4vw, 2.1rem); letter-spacing: -.02em; margin: 0; line-height: 1 }
+h1 { font-family: var(--display); font-weight: 600; font-style: italic; font-size: clamp(1.7rem, 4vw, 2.2rem); letter-spacing: -.01em; margin: 0; line-height: 1 }
 .count { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums }
+.brand-side { display: flex; align-items: center; gap: 10px; align-self: center }
+.theme-btn { width: 36px; height: 36px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--basil); display: grid; place-items: center; padding: 0 }
+.theme-btn:hover { border-color: var(--muted) }
 .search { flex: 1 1 160px; min-width: 0; position: relative }
 .search input { width: 100%; padding: 10px 14px 10px 38px; border: 1px solid var(--line); border-radius: 999px; background: var(--card) }
 .search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted) }
@@ -123,11 +127,11 @@ main .wrap { padding-block: 22px 60px }
 .card-open { position: absolute; inset: 0; border: 0; background: transparent; padding: 0; border-radius: var(--r); z-index: 1 }
 .thumb { aspect-ratio: 4/3; width: 100%; background: var(--basil-soft); position: relative; overflow: hidden }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block }
-.ph { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 4rem; color: var(--basil); opacity: .55 }
+.ph { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); font-weight: 500; font-style: italic; font-size: 4rem; color: var(--basil); opacity: .55 }
 .heart { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--card); display: grid; place-items: center; color: var(--muted); box-shadow: var(--shadow); z-index: 2 }
 .heart.on { color: var(--tomato) }
 .cbody { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0 }
-.cbody h3 { font-family: var(--display); font-weight: 700; font-size: 1.15rem; margin: 0; line-height: 1.2; text-wrap: balance; overflow-wrap: anywhere }
+.cbody h3 { font-family: var(--display); font-weight: 600; font-size: 1.15rem; margin: 0; line-height: 1.2; text-wrap: balance; overflow-wrap: anywhere }
 .meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: .8rem; color: var(--muted) }
 .tag { border-radius: 6px; padding: 2px 8px; font-size: .78rem; font-weight: 600 }
 .tag.meal { background: var(--basil-soft); color: var(--basil) }
@@ -160,7 +164,7 @@ main .wrap { padding-block: 22px 60px }
 .dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--line) }
 .dots span.on { background: var(--basil) }
 .sec { padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; min-width: 0 }
-.sec h2 { font-family: var(--display); font-weight: 800; font-size: clamp(1.5rem, 4vw, 2rem); margin: 0; line-height: 1.1; letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere }
+.sec h2 { font-family: var(--display); font-weight: 600; font-size: clamp(1.5rem, 4vw, 2rem); margin: 0; line-height: 1.1; letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere }
 .sec h4 { font-size: .75rem; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 6px 0 0 }
 .desc { color: var(--muted); margin: 0; max-width: 65ch; white-space: pre-wrap }
 .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 28px }

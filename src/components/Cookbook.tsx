@@ -5,6 +5,7 @@ import { FilterMenu, type Author } from "./FilterMenu";
 import { ClockIcon, HeartIcon, SearchIcon } from "./Icons";
 import { RecipeDetail } from "./RecipeDetail";
 import { RecipeEditor } from "./RecipeEditor";
+import { ThemeButton } from "./ThemeButton";
 
 type Props = { uid: string; myName: string };
 
@@ -217,8 +218,11 @@ export function Cookbook({ uid, myName }: Props) {
           <div className="bar">
             <div className="brand">
               <h1>Ons Kookboek</h1>
-              <span className="count" aria-live="polite">
-                {loaded ? (shown === 1 ? "1 recept" : `${shown} recepten`) : ""}
+              <span className="brand-side">
+                <span className="count" aria-live="polite">
+                  {loaded ? (shown === 1 ? "1 recept" : `${shown} recepten`) : ""}
+                </span>
+                <ThemeButton />
               </span>
             </div>
             <div className="search">

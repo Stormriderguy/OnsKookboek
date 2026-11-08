@@ -98,10 +98,10 @@ Beveiliging (Row Level Security op alle tabellen):
 
 ## Ontwerp
 
-Neem het ontwerp van `kookboek.html` over.
+De opbouw komt uit `kookboek.html`; de kleuren en lettertypes zijn op 8 november 2026 vervangen door stijl A, "oudroze en salie", voor een zachtere, vrouwelijkere uitstraling.
 
-- **Kleuren**: basilicumgroen als hoofdkleur, saffraangeel voor smaaklabels en tomaatrood voor favorieten en verwijderen, op een licht groenig papierwit. Er is ook een donker thema dat de systeeminstelling volgt; de tokens staan bovenaan in `kookboek.html`.
-- **Lettertypes**: Bricolage Grotesque voor koppen en Figtree voor tekst (Google Fonts).
+- **Kleuren**: oudroze als hoofdkleur, saliegroen voor smaaklabels en frambozenrood voor favorieten en verwijderen, op een zacht roze-wit. Er is ook een donker thema (donker aubergine met zacht roze en salie) dat de systeeminstelling volgt, met een dag/nachtknop in de kopbalk om zelf te kiezen. De tokens staan bovenaan in `src/styles.css` (de namen `--basil`, `--saffron` en `--tomato` zijn gebleven uit de eerste versie).
+- **Lettertypes**: Fraunces voor koppen (de titel cursief) en Nunito voor tekst (Google Fonts).
 - **Opbouw**: een vaste kopbalk met zoekveld, de knop "+ Recept" en een filterbalk die horizontaal scrolt. Recepten openen als een venster over de pagina.
 - **Mobiel eerst**: alles moet goed werken op een telefoon van 375 px breed, zonder horizontaal scrollen.
 - **Toegankelijkheid**: zichtbare focus, labels op alle velden, en rekening houden met `prefers-reduced-motion`.

@@ -5,8 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Ons Kookboek</title>
     <meta name="description" content="Het gedeelde kookboek van familie en vrienden." />
-    <meta name="theme-color" content="#F4F6EF" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#121813" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#FBF4F3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1A1316" media="(prefers-color-scheme: dark)" />
+    <script>
+      // Day or night mode chosen with the button (src/theme.ts): apply it before the page shows, so it doesn't flash.
+      try {
+        var t = localStorage.getItem("theme");
+        if (t === "light" || t === "dark") {
+          document.documentElement.dataset.theme = t;
+          document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.content = t === "dark" ? "#1A1316" : "#FBF4F3"; });
+        }
+      } catch (e) {}
+    </script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -16,7 +26,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500..700;1,9..144,500..700&family=Nunito:wght@400;500;600;700&display=swap"
     />
   </head>
   <body>
