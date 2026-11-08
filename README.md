@@ -62,6 +62,7 @@ De code staat in [github.com/Stormriderguy/OnsKookboek](https://github.com/Storm
    - `VITE_SUPABASE_URL`: de Project URL uit Supabase (knop **Connect**)
    - `VITE_SUPABASE_ANON_KEY` (of `VITE_SUPABASE_PUBLISHABLE_KEY`, zoals Supabase hem noemt): de **publishable**- of **anon**-sleutel uit Supabase
    - `ANTHROPIC_API_KEY`: de API-sleutel van Claude voor het scannen (maken op console.anthropic.com → **API Keys**). Alleen voor **Production**, en zet **Sensitive** aan. Deze naam begint bewust niet met `VITE_`: zo blijft de sleutel op de server van Vercel en komt hij nooit in de browser.
+   - `PIXABAY_API_KEY` (optioneel, reserve als Openverse niets vindt): gratis sleutel van pixabay.com/api/docs (na inloggen staat hij op die pagina), om een passende foto te zoeken als een gescand recept geen foto heeft. Ook alleen voor **Production**, met **Sensitive** aan. In plaats daarvan of daarnaast kan ook `PEXELS_API_KEY` (pexels.com/api); Pixabay wordt dan eerst geprobeerd.
 3. Start een nieuwe deploy (**Deployments → ⋯ → Redeploy**), zodat de sleutels worden meegenomen.
 
 Gebruik nooit de `service_role`- of `secret`-sleutel: die geeft volledige toegang tot de database.
@@ -97,6 +98,7 @@ In het receptformulier staat de knop **Recept scannen van foto**. De app stuurt 
 - Nodig: `ANTHROPIC_API_KEY` in Vercel (zie hierboven) en tegoed op console.anthropic.com. Zet daar bij **Limits** een maandlimiet, bijvoorbeeld $5.
 - Iedereen kan maximaal 100 foto's per dag laten lezen (bijgehouden in Supabase, functie `use_scan`). Is het maximum bereikt, of is Claude niet bereikbaar, dan meldt de app: "Er kunnen vandaag geen foto's meer worden verwerkt."
 - Staat er op een gescande foto ook een afbeelding van het gerecht zelf, dan wordt die uitgeknipt en bij de foto's van het recept gezet (als eerste, als het recept nog geen foto had). Hij wordt zo klein mogelijk opgeslagen: maximaal 900 pixels, als WebP, meestal 30 à 50 kB. Een smal randje of een heel klein plaatje wordt overgeslagen. Is de uitsnede niet goed, haal hem dan weg met het kruisje.
+- Alleen als er op de gescande foto's géén afbeelding van het gerecht staat, en het recept ook nog geen foto heeft, zoekt de app een passende foto en zet die er klein bij. Eerst via Openverse: foto's van heel internet (vooral Flickr) die vrij gebruikt mogen worden, zonder sleutel. Vindt die niets, dan bij Pixabay of Pexels (als die sleutel in Vercel staat). De melding noemt de maker en de licentie (bijvoorbeeld CC BY 2.0): die naamsvermelding hoort bij deze foto's. Past de foto niet, haal hem dan weg met het kruisje. Openverse heeft geen sleutel nodig; Pixabay en Pexels zijn een reserve.
 - Onder **Herkende tekst bekijken** staat alles wat gelezen is.
 - De map `scanner/` is de oude scanner via Ollama op een eigen Linuxcomputer. Die is niet meer nodig.
 - Bij `npm run dev` op je eigen computer werkt scannen niet (de functie draait alleen op Vercel).

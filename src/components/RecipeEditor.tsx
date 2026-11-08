@@ -184,27 +184,47 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
   }
 
   /**
-   * A scanned photo with a picture of the finished dish on it: cut that picture out, make it small and add it
-   * to the recipe's photos (first, if the recipe had none yet). Returns its size in kB, or 0 if nothing was added.
+   * Adds a photo of the dish to the recipe, as small as possible, and returns a line for the scan note.
+   * First choice: the picture of the dish on a scanned photo, cut out. Otherwise, if the recipe has no photo yet,
+   * the matching photo the scan function found in a free photo bank (Pixabay or Pexels).
    */
-  async function addDishPhoto(files: File[], dish: ParsedRecipe["dishPhoto"]): Promise<number> {
-    const file = dish ? files[dish.index] : undefined;
-    if (!dish || !file) return 0;
-    setScan((s) => ({ ...s, label: "Foto van het gerecht toevoegen…" }));
-    const small = await cropSmall(file, dish);
-    if (!small) return 0;
-    try {
-      await uploadPhoto(small, small.type === "image/webp" ? "webp" : "jpg", photos.length === 0);
-      return Math.max(1, Math.round(small.size / 1024));
-    } catch {
-      return 0;
+  async function addDishPhoto(files: File[], p: ParsedRecipe): Promise<string> {
+    const add = async (small: Blob | null) => {
+      if (!small) return 0;
+      try {
+        await uploadPhoto(small, small.type === "image/webp" ? "webp" : "jpg", photos.length === 0);
+        return Math.max(1, Math.round(small.size / 1024));
+      } catch {
+        return 0;
+      }
+    };
+    const whole = { left: 0, top: 0, right: 1, bottom: 1 };
+
+    const file = p.dishPhoto ? files[p.dishPhoto.index] : undefined;
+    if (p.dishPhoto && file) {
+      setScan((s) => ({ ...s, label: "Foto van het gerecht toevoegen…" }));
+      const kB = await add(await cropSmall(file, p.dishPhoto));
+      if (kB) return `De foto van het gerecht staat bij de foto's (${kB} kB); haal hem weg als hij niet goed is. `;
     }
+
+    if (p.stockPhoto && photos.length === 0) {
+      setScan((s) => ({ ...s, label: "Passende foto toevoegen…" }));
+      const bytes = Uint8Array.from(atob(p.stockPhoto.data), (c) => c.charCodeAt(0));
+      const kB = await add(await cropSmall(new Blob([bytes], { type: p.stockPhoto.type }), whole));
+      if (kB) {
+        const by = p.stockPhoto.credit ? ` van ${p.stockPhoto.credit}` : "";
+        return `Er stond geen foto van het gerecht bij, daarom is er een passende foto${by} via ${p.stockPhoto.source} toegevoegd (${kB} kB); haal hem weg als hij niet past. `;
+      }
+    }
+    return "";
   }
 
   async function scanPhotos(files: File[]) {
     setScan({ busy: true, label: "Voorbereiden…", note: "", text: "" });
     try {
-      const p = await scanWithAI(files, (label) => setScan((s) => ({ ...s, label })));
+      const p = await scanWithAI(files, (label) => setScan((s) => ({ ...s, label })), {
+        wantStock: photos.length === 0 && uploading === 0,
+      });
       clearPending();
       const text = parsedAsText(p);
       if (p.title && !title.trim()) setTitle(p.title);
@@ -228,7 +248,7 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
       const addedSteps = p.steps.length - stepMerge.skipped;
       const skipped = ingMerge.skipped + stepMerge.skipped;
       const found = p.ingredients.length + p.steps.length;
-      const dish = await addDishPhoto(files, p.dishPhoto);
+      const dish = await addDishPhoto(files, p);
       setScan({
         busy: false,
         label: "",
@@ -238,7 +258,7 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
           : `Klaar: ${addedIngs} ingrediënten en ${addedSteps} stappen toegevoegd` +
             (skipped ? ` (${skipped} stond${skipped === 1 ? "" : "en"} er al en ${skipped === 1 ? "is" : "zijn"} overgeslagen)` : "") +
             ". " +
-            (dish ? `De foto van het gerecht staat bij de foto's (${dish} kB); haal hem weg als hij niet goed is. ` : "") +
+            dish +
             "Controleer alles even, de herkenning maakt soms fouten.",
       });
     } catch (e) {

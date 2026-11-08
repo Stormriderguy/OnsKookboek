@@ -30,9 +30,13 @@ function toBase64(blob: Blob): Promise<{ type: string; data: string }> {
 
 /**
  * Sends the photos (one or more pages of the same recipe) to the scan function (api/scan.ts on Vercel)
- * and returns the recipe, read as a whole.
+ * and returns the recipe, read as a whole. wantStock: also look for a photo of the dish (the recipe has none yet).
  */
-export async function scanWithAI(files: File[], onStatus: (label: string) => void): Promise<ParsedRecipe> {
+export async function scanWithAI(
+  files: File[],
+  onStatus: (label: string) => void,
+  { wantStock = false }: { wantStock?: boolean } = {},
+): Promise<ParsedRecipe> {
   const session = (await supabase?.auth.getSession())?.data.session;
   if (!session) throw new ScanError("weg");
 
@@ -52,7 +56,7 @@ export async function scanWithAI(files: File[], onStatus: (label: string) => voi
     res = await fetch("/api/scan", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ images }),
+      body: JSON.stringify({ images, wantStock }),
       signal: AbortSignal.timeout(150_000),
     });
   } catch {

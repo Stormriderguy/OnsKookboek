@@ -10,6 +10,8 @@ export type ParsedRecipe = {
   steps: string[];
   /** Where a picture of the finished dish is: which photo (0 = first) and its edges as fractions (0-1). */
   dishPhoto: { index: number; left: number; top: number; right: number; bottom: number } | null;
+  /** A matching photo from a free photo bank (Openverse, Pixabay or Pexels, base64), found when the recipe had no photo yet. */
+  stockPhoto: { type: string; data: string; credit: string; link: string; source: string } | null;
 };
 
 const UNITS: [RegExp, string][] = [
@@ -106,6 +108,14 @@ function dishPhotoOf(v: unknown): ParsedRecipe["dishPhoto"] {
   return { index: Math.round(photo) - 1, left, top, right, bottom };
 }
 
+function stockPhotoOf(v: unknown): ParsedRecipe["stockPhoto"] {
+  const o = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+  if (typeof o.data !== "string" || !o.data || typeof o.type !== "string" || !o.type.startsWith("image/")) return null;
+  const link = /^https:\/\//.test(str(o.link)) ? str(o.link) : "";
+  const source = ["Openverse", "Pixabay", "Pexels"].includes(str(o.source)) ? str(o.source) : "een fotobank";
+  return { type: o.type, data: o.data, credit: str(o.credit), link, source };
+}
+
 /** Cleans up what the scanner's AI model returned, so it fits the form's fields and units. */
 export function normalizeParsed(raw: unknown): ParsedRecipe {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
@@ -139,6 +149,7 @@ export function normalizeParsed(raw: unknown): ParsedRecipe {
   return {
     title,
     dishPhoto: dishPhotoOf(r.dish_photo),
+    stockPhoto: stockPhotoOf(r.stock_photo),
     description: str(r.description).slice(0, 400),
     servings: int(r.servings, 99),
     minutes: int(r.minutes, 1440),
