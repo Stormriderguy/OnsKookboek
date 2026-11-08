@@ -6,14 +6,14 @@
     <title>Ons Kookboek</title>
     <meta name="description" content="Het gedeelde kookboek van familie en vrienden." />
     <meta name="theme-color" content="#FBF4F3" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#9C3E5E" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#86344F" media="(prefers-color-scheme: dark)" />
     <script>
       // Day or night mode chosen with the button (src/theme.ts): apply it before the page shows, so it doesn't flash.
       try {
         var t = localStorage.getItem("theme");
         if (t === "light" || t === "dark") {
           document.documentElement.dataset.theme = t;
-          document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.content = t === "dark" ? "#9C3E5E" : "#FBF4F3"; });
+          document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.content = t === "dark" ? "#86344F" : "#FBF4F3"; });
         }
       } catch (e) {}
     </script>
