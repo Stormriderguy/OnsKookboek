@@ -75,7 +75,7 @@ Regels:
 - ingredients: elk ingrediënt apart. qty is de hoeveelheid zoals "200", "1,5" of "1/2" (leeg als er geen is). unit is de eenheid zoals g, kg, ml, dl, l, el, tl, snufje, stuks, teen, blik, bos, plak, kopje of naar smaak (leeg als er geen is). name is de rest van de regel. Zet elk woord in maar één veld. Voorbeelden: "200 g bloem" → qty "200", unit "g", name "bloem"; "2 kleine uien" → qty "2", unit "", name "kleine uien"; "zout" → qty "", unit "", name "zout".
 - steps: de bereiding in de juiste volgorde. Elke alinea is één stap: neem de hele alinea over als één tekst en splits hem niet op in losse zinnen. Zijn de stappen in het recept genummerd, dan is elk nummer één stap. Laat de nummers zelf weg.
 - dish_photo: staat er op een foto een afbeelding van het klaargemaakte gerecht (het eten zelf, bijvoorbeeld de foto naast de tekst in een kookboek, of een foto van het bord)? Geef dan photo = het nummer van die foto (1 voor de eerste) en de randen van alleen die afbeelding van het eten, in procenten van de breedte en hoogte van de foto: left en right van links gemeten, top en bottom van boven gemeten (0 tot 100). Neem geen tekst, kantlijn of tafel mee als dat kan. Kies bij meer afbeeldingen de grootste. Is er geen afbeelding van het gerecht, of is het eten maar half of als smal randje te zien (bijvoorbeeld de rand van de volgende pagina), geef dan photo 0 en alle randen 0.
-- dish: zoek uit welk gerecht dit eigenlijk is, aan de hand van de naam, de ingrediënten en de bereiding (gebruik wat je weet over gerechten uit verschillende landen). name_en: de Engelse naam van het gerecht zoals Engelstaligen het kennen. search_terms: 3 korte Engelse zoektermen van 2 of hooguit 3 woorden om een foto van precies dit gerecht te vinden in een fotobank, de meest precieze eerst (bijvoorbeeld de gangbare Engelse naam, en daarna een korte omschrijving zoals "potato gratin" of "cheese bake"). Fotobanken vinden niets bij lange zoektermen. Geen merknamen. looks: in één Engelse zin hoe het klaargemaakte gerecht eruitziet (vorm, kleur, hoe het wordt opgediend).`;
+- dish: zoek uit welk gerecht dit eigenlijk is, aan de hand van de naam, de ingrediënten en de bereiding. Bedenk ook onder welke namen hetzelfde of een vergelijkbaar gerecht in andere landen bekend is: veel gerechten hebben in Engeland, Australië, Amerika, Duitsland of Frankrijk een eigen, bekende naam, en een regionale of oudere naam in het eigen land. name_en: de naam waaronder Engelstaligen dit gerecht kennen (de echte, gangbare naam als die er is, niet een vertaling of omschrijving). search_terms: 4 korte zoektermen van 2 of hooguit 3 woorden om een foto van precies dit gerecht te vinden in een fotobank, de meest precieze eerst: eerst de bekende namen van het gerecht in andere landen (in die taal, bijvoorbeeld Engels of Duits), daarna een korte Engelse omschrijving van het eten zoals "potato gratin". Fotobanken vinden niets bij lange zoektermen. Geen merknamen. looks: in één Engelse zin hoe het klaargemaakte gerecht eruitziet (vorm, kleur, hoe het wordt opgediend).`;
 
 const MORE_PAGES = `Er zijn meerdere foto's. Samen vormen ze één recept, bijvoorbeeld pagina 1 en 2, of een foto van de ingrediënten en een van de bereiding. Geef één recept terug:
 - Neem elk ingrediënt maar één keer op, ook als het op meer foto's te zien is.
@@ -188,31 +188,53 @@ async function stockPhoto(client: Anthropic, dish: Dish): Promise<StockPhoto | n
     .slice(0, 12);
   if (!terms.length) return null;
 
-  // 1. Candidates: Openverse, three search terms at a time (it gets stuck with more), until there are enough.
-  //    The reserves only if Openverse finds too little.
-  const settle = async (jobs: Promise<Candidate[]>[]) =>
-    (await Promise.allSettled(jobs)).flatMap((r) => (r.status === "fulfilled" ? r.value : (console.error(String(r.reason)), [])));
-  // The reserves search at the same time (Openverse can be slow); their photos come after Openverse's.
+  // 1. Candidates. Openverse first, three search terms at a time (it gets stuck with more), until there are enough.
+  //    The reserves (Pixabay, Pexels) search at the same time; their photos come after Openverse's.
+  //    From Vercel's servers Openverse sometimes doesn't answer at all: if a whole round gets no answer, stop asking it,
+  //    so there is time left for the reserves and the check.
+  const settle = async (jobs: Promise<Candidate[]>[]) => {
+    const results = await Promise.allSettled(jobs);
+    for (const r of results) if (r.status === "rejected") console.error("Fotobank:", String(r.reason));
+    return { photos: results.flatMap((r) => (r.status === "fulfilled" ? r.value : [])), answered: results.some((r) => r.status === "fulfilled") };
+  };
   const pixKey = process.env.PIXABAY_API_KEY;
   const pexKey = process.env.PEXELS_API_KEY;
-  const reserveTerms = terms.slice(0, 6);
+  const reserveTerms = terms.slice(0, 8);
   const reserves = settle([
     ...(pixKey ? reserveTerms.map((t) => pixabay(pixKey, t, 8_000)) : []),
     ...(pexKey ? reserveTerms.map((t) => pexels(pexKey, t, 8_000)) : []),
   ]);
   let found: Candidate[] = [];
-  for (let i = 0; i < terms.length && found.length < 6 && left() > 14_000; i += 3) {
-    found = found.concat(await settle(terms.slice(i, i + 3).map((t) => openverse(t, Math.min(8_000, left() - 12_000)))));
+  for (let i = 0; i < terms.length && found.length < 6 && left() > 20_000; i += 3) {
+    const round = await settle(terms.slice(i, i + 3).map((t) => openverse(t, 6_000)));
+    found = found.concat(round.photos);
+    if (!round.answered) {
+      console.log("Openverse geeft geen antwoord; verder met de reserves");
+      break;
+    }
   }
-  found = found.concat(await reserves);
+  const fromOpenverse = found.length;
+  found = found.concat((await reserves).photos);
   const seen = new Set<string>();
   const unique = found.filter((c) => !seen.has(c.full) && seen.add(c.full)).slice(0, 8);
-  if (!unique.length || left() < 6_000) return null;
+  console.log(`Foto zoeken: ${fromOpenverse} van Openverse, ${found.length - fromOpenverse} van de reserves (${terms.join(" | ")})`);
+  if (!unique.length) return null;
+  if (left() < 8_000) {
+    console.log("Foto zoeken: te weinig tijd over om de foto's te keuren");
+    return null;
+  }
 
   // 2. Small previews, so Claude can look at them all at once.
-  const previews = await Promise.all(unique.map((c) => fetchImage(c.preview, Math.min(8_000, left()), 1.5 * 1024 * 1024)));
+  const previews = await Promise.all(unique.map((c) => fetchImage(c.preview, Math.min(6_000, left() - 6_000), 1.5 * 1024 * 1024)));
   const shown = unique.map((c, i) => ({ c, img: previews[i] })).filter((x) => x.img) as { c: Candidate; img: { type: ImageType; data: string } }[];
-  if (!shown.length || left() < 4_000) return null;
+  if (!shown.length) {
+    console.log(`Foto zoeken: geen van de ${unique.length} voorbeelden kon worden opgehaald`);
+    return null;
+  }
+  if (left() < 4_000) {
+    console.log("Foto zoeken: te weinig tijd over om de foto's te keuren");
+    return null;
+  }
 
   // 3. Claude picks the photo that really shows this dish, or none.
   const check = await client.messages.create(
