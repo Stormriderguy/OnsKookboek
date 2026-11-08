@@ -186,7 +186,7 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
   /**
    * Adds a photo of the dish to the recipe, as small as possible, and returns a line for the scan note.
    * First choice: the picture of the dish on a scanned photo, cut out. Otherwise, if the recipe has no photo yet,
-   * the matching photo the scan function found in a free photo bank (Pixabay or Pexels).
+   * the matching photo the scan function found on the internet (Openverse, or Pexels).
    */
   async function addDishPhoto(files: Blob[], p: ParsedRecipe): Promise<string> {
     const add = async (small: Blob | null) => {

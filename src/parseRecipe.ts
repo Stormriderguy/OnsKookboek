@@ -10,7 +10,7 @@ export type ParsedRecipe = {
   steps: string[];
   /** Where a picture of the finished dish is: which photo (0 = first) and its edges as fractions (0-1). */
   dishPhoto: { index: number; left: number; top: number; right: number; bottom: number } | null;
-  /** A matching photo from a free photo bank (Openverse, Pixabay or Pexels, base64), found when the recipe had no photo yet. */
+  /** A matching photo from a free photo bank (Openverse or Pexels, base64), found when the recipe had no photo yet. */
   stockPhoto: { type: string; data: string; credit: string; link: string; source: string } | null;
 };
 
@@ -112,7 +112,7 @@ function stockPhotoOf(v: unknown): ParsedRecipe["stockPhoto"] {
   const o = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
   if (typeof o.data !== "string" || !o.data || typeof o.type !== "string" || !o.type.startsWith("image/")) return null;
   const link = /^https:\/\//.test(str(o.link)) ? str(o.link) : "";
-  const source = ["Openverse", "Pixabay", "Pexels"].includes(str(o.source)) ? str(o.source) : "een fotobank";
+  const source = ["Openverse", "Pexels"].includes(str(o.source)) ? str(o.source) : "een fotobank";
   return { type: o.type, data: o.data, credit: str(o.credit), link, source };
 }
 

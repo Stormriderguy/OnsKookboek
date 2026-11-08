@@ -130,18 +130,7 @@ async function openverse(term: string, ms: number): Promise<Candidate[]> {
   });
 }
 
-/** Pixabay (free to use and to change; the picture must be downloaded, not linked to). Key: PIXABAY_API_KEY. */
-async function pixabay(key: string, term: string, ms: number): Promise<Candidate[]> {
-  const url =
-    `https://pixabay.com/api/?key=${encodeURIComponent(key)}&q=${encodeURIComponent(term)}` +
-    "&image_type=photo&category=food&safesearch=true&per_page=4";
-  const res = await fetch(url, { signal: AbortSignal.timeout(ms) });
-  if (!res.ok) throw new Error(`Pixabay gaf ${res.status}`);
-  const found = (await res.json()) as { hits?: { pageURL: string; user: string; webformatURL: string; largeImageURL: string }[] };
-  return (found.hits ?? []).map((h) => ({ preview: h.webformatURL, full: h.largeImageURL, credit: h.user, link: h.pageURL, source: "Pixabay" }));
-}
-
-/** Pexels (free to use and to change). Key: PEXELS_API_KEY. */
+/** Pexels (free to use and to change). Only used if PEXELS_API_KEY is set (Pexels gave out no new keys on 8 Nov 2026). */
 async function pexels(key: string, term: string, ms: number): Promise<Candidate[]> {
   const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(term)}&per_page=4`;
   const res = await fetch(url, { headers: { Authorization: key }, signal: AbortSignal.timeout(ms) });
@@ -166,7 +155,7 @@ async function fetchImage(src: string, ms: number, maxBytes: number): Promise<{ 
 
 /**
  * Finds a photo of the dish for a recipe without one. Collects a few candidates from Openverse (all over the
- * internet, Creative Commons) and, as a reserve, Pixabay and Pexels; then Claude looks at them and only a photo
+ * internet, Creative Commons) and, if it has a key, Pexels; then Claude looks at them and only a photo
  * that clearly shows this dish is used. No photo is better than a wrong one. At most about 35 seconds.
  */
 async function stockPhoto(client: Anthropic, dish: Dish): Promise<StockPhoto | null> {
@@ -189,27 +178,21 @@ async function stockPhoto(client: Anthropic, dish: Dish): Promise<StockPhoto | n
   if (!terms.length) return null;
 
   // 1. Candidates. Openverse first, three search terms at a time (it gets stuck with more), until there are enough.
-  //    The reserves (Pixabay, Pexels) search at the same time; their photos come after Openverse's.
-  //    From Vercel's servers Openverse sometimes doesn't answer at all: if a whole round gets no answer, stop asking it,
-  //    so there is time left for the reserves and the check.
+  //    Pexels (only with a key) searches at the same time; its photos come after Openverse's.
+  //    From Vercel's servers Openverse sometimes doesn't answer at all: if a whole round gets no answer, stop asking it.
   const settle = async (jobs: Promise<Candidate[]>[]) => {
     const results = await Promise.allSettled(jobs);
     for (const r of results) if (r.status === "rejected") console.error("Fotobank:", String(r.reason));
     return { photos: results.flatMap((r) => (r.status === "fulfilled" ? r.value : [])), answered: results.some((r) => r.status === "fulfilled") };
   };
-  const pixKey = process.env.PIXABAY_API_KEY;
   const pexKey = process.env.PEXELS_API_KEY;
-  const reserveTerms = terms.slice(0, 8);
-  const reserves = settle([
-    ...(pixKey ? reserveTerms.map((t) => pixabay(pixKey, t, 8_000)) : []),
-    ...(pexKey ? reserveTerms.map((t) => pexels(pexKey, t, 8_000)) : []),
-  ]);
+  const reserves = settle(pexKey ? terms.slice(0, 8).map((t) => pexels(pexKey, t, 8_000)) : []);
   let found: Candidate[] = [];
   for (let i = 0; i < terms.length && found.length < 6 && left() > 20_000; i += 3) {
     const round = await settle(terms.slice(i, i + 3).map((t) => openverse(t, 6_000)));
     found = found.concat(round.photos);
     if (!round.answered) {
-      console.log("Openverse geeft geen antwoord; verder met de reserves");
+      console.log("Openverse geeft geen antwoord");
       break;
     }
   }
@@ -217,7 +200,7 @@ async function stockPhoto(client: Anthropic, dish: Dish): Promise<StockPhoto | n
   found = found.concat((await reserves).photos);
   const seen = new Set<string>();
   const unique = found.filter((c) => !seen.has(c.full) && seen.add(c.full)).slice(0, 8);
-  console.log(`Foto zoeken: ${fromOpenverse} van Openverse, ${found.length - fromOpenverse} van de reserves (${terms.join(" | ")})`);
+  console.log(`Foto zoeken: ${fromOpenverse} van Openverse, ${found.length - fromOpenverse} van Pexels (${terms.join(" | ")})`);
   if (!unique.length) return null;
   if (left() < 8_000) {
     console.log("Foto zoeken: te weinig tijd over om de foto's te keuren");
@@ -281,6 +264,7 @@ async function stockPhoto(client: Anthropic, dish: Dish): Promise<StockPhoto | n
   // 4. The bigger version of the chosen photo; the preview will do if that fails.
   const big = left() > 2_000 ? await fetchImage(pick.c.full, Math.min(8_000, left()), 2 * 1024 * 1024) : null;
   const img = big ?? pick.img;
+  console.log(`Foto gekozen: ${pick.c.source}, ${pick.c.credit}, ${pick.c.link}`);
   return { ...img, credit: pick.c.credit, link: pick.c.link, source: pick.c.source };
 }
 
