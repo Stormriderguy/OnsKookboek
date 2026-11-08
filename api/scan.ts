@@ -1,10 +1,11 @@
-// Scanfunctie voor Ons Kookboek (Vercel). Leest een foto van een recept met Claude Haiku.
+// Scanfunctie voor Ons Kookboek (Vercel). Leest één of meer foto's van een recept met Claude Haiku.
 // Alleen leden mogen scannen, maximaal 100 keer per dag (zie use_scan in supabase/schema.sql).
 // De API-sleutel staat alleen in Vercel (ANTHROPIC_API_KEY) en komt nooit in de browser.
 import Anthropic from "@anthropic-ai/sdk";
 
 const MODEL = "claude-haiku-5-5";
-const MAX_BYTES = 4 * 1024 * 1024;
+const MAX_BYTES = 4.4 * 1024 * 1024; // Vercel accepteert tot 4,5 MB
+const MAX_PHOTOS = 4;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 type ImageType = (typeof IMAGE_TYPES)[number];
 
@@ -45,6 +46,11 @@ Regels:
 - ingredients: elk ingrediënt apart. qty is de hoeveelheid zoals "200", "1,5" of "1/2" (leeg als er geen is). unit is de eenheid zoals g, kg, ml, dl, l, el, tl, snufje, stuks, teen, blik, bos, plak, kopje of naar smaak (leeg als er geen is). name is de rest van de regel. Zet elk woord in maar één veld. Voorbeelden: "200 g bloem" → qty "200", unit "g", name "bloem"; "2 kleine uien" → qty "2", unit "", name "kleine uien"; "zout" → qty "", unit "", name "zout".
 - steps: de bereiding in de juiste volgorde. Elke alinea is één stap: neem de hele alinea over als één tekst en splits hem niet op in losse zinnen. Zijn de stappen in het recept genummerd, dan is elk nummer één stap. Laat de nummers zelf weg.`;
 
+const MORE_PAGES = `Er zijn meerdere foto's. Samen vormen ze één recept, bijvoorbeeld pagina 1 en 2, of een foto van de ingrediënten en een van de bereiding. Geef één recept terug:
+- Neem elk ingrediënt maar één keer op, ook als het op meer foto's te zien is.
+- Neem elke alinea van de bereiding maar één keer op, in de juiste volgorde. Loopt een alinea door op de volgende foto, maak er dan één stap van.
+- Staat er op een foto iets dat niet bij dit recept hoort (bijvoorbeeld een ander recept op dezelfde pagina), laat dat weg.`;
+
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
@@ -67,11 +73,21 @@ export async function POST(request: Request): Promise<Response> {
   const token = /^Bearer\s+(\S+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
   if (!token) return json(401, { error: "niet_ingelogd" });
 
-  const type = (request.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
-  if (!IMAGE_TYPES.includes(type as ImageType)) return json(415, { error: "geen_foto" });
-  const photo = Buffer.from(await request.arrayBuffer());
-  if (!photo.length) return json(415, { error: "geen_foto" });
-  if (photo.length > MAX_BYTES) return json(413, { error: "te_groot" });
+  // Body: { images: [{ type: "image/jpeg", data: "<base64>" }, ...] }, één of meer pagina's van hetzelfde recept.
+  const body = await request.text();
+  if (body.length > MAX_BYTES) return json(413, { error: "te_groot" });
+  let images: { type: ImageType; data: string }[];
+  try {
+    const raw = (JSON.parse(body) as { images?: unknown }).images;
+    if (!Array.isArray(raw) || raw.length < 1 || raw.length > MAX_PHOTOS) throw new Error("aantal");
+    images = raw.map((i: { type?: unknown; data?: unknown }) => {
+      const type = String(i?.type ?? "").toLowerCase() as ImageType;
+      if (!IMAGE_TYPES.includes(type) || typeof i?.data !== "string" || !i.data) throw new Error("foto");
+      return { type, data: i.data };
+    });
+  } catch {
+    return json(415, { error: "geen_foto" });
+  }
 
   // Lid en onder de daglimiet? Dit telt meteen één scan.
   let allowed: Response;
@@ -96,8 +112,11 @@ export async function POST(request: Request): Promise<Response> {
         {
           role: "user",
           content: [
-            { type: "image", source: { type: "base64", media_type: type as ImageType, data: photo.toString("base64") } },
-            { type: "text", text: PROMPT },
+            ...images.flatMap((img, n): Anthropic.ContentBlockParam[] => [
+              ...(images.length > 1 ? [{ type: "text" as const, text: `Foto ${n + 1}:` }] : []),
+              { type: "image", source: { type: "base64", media_type: img.type, data: img.data } },
+            ]),
+            { type: "text", text: images.length > 1 ? `${PROMPT}\n\n${MORE_PAGES}` : PROMPT },
           ],
         },
       ],

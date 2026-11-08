@@ -92,7 +92,8 @@ Elke push naar de branch `main` op GitHub zet Vercel automatisch online. In Verc
 
 In het receptformulier staat de knop **Recept scannen van foto**. De app stuurt de foto naar een kleine functie op Vercel (`api/scan.ts`), die hem laat lezen door Claude Haiku. Die leest het recept, ook bij pagina's met twee kolommen, en vult de naam, het aantal personen, de tijd, de ingrediënten en de stappen in. Controleer het resultaat altijd even.
 
-- Een scan duurt ongeveer 10 seconden en kost ongeveer 0,15 cent.
+- Een scan duurt ongeveer 10 seconden en kost ongeveer 0,15 cent per foto.
+- Staat een recept op meer pagina's, kies dan alle foto's tegelijk (maximaal 4): ze worden samen gelezen als één recept. Je kunt ook later nog een foto scannen. Ingrediënten en stappen die al in het formulier staan, worden niet nog eens toegevoegd. Hetzelfde ingrediënt met een andere hoeveelheid blijft wel staan, want dat kan echt twee keer in een recept voorkomen.
 - Nodig: `ANTHROPIC_API_KEY` in Vercel (zie hierboven) en tegoed op console.anthropic.com. Zet daar bij **Limits** een maandlimiet, bijvoorbeeld $5.
 - Iedereen kan maximaal 100 foto's per dag laten lezen (bijgehouden in Supabase, functie `use_scan`). Is het maximum bereikt, of is Claude niet bereikbaar, dan meldt de app: "Er kunnen vandaag geen foto's meer worden verwerkt."
 - Onder **Herkende tekst bekijken** staat alles wat gelezen is.

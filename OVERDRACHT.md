@@ -50,8 +50,10 @@ De gebruiker wil de Linuxcomputer niet meer gebruiken. Ollama (±3½ min per sca
 - `api/scan.ts`: POST met de foto als body en het Supabase-token. Roept eerst `rpc/use_scan` aan (lid + daglimiet 100, telt meteen één scan), dan Claude met structured output (zelfde opdracht en schema als de oude scanner). Bij een fout `rpc/refund_scan`. Antwoorden: 200 recept, 401, 413/415/422 (foto onleesbaar → "mislukt"), 429 limiet, 503 (→ "Er kunnen vandaag geen foto's meer worden verwerkt").
 - Omgevingsvariabelen in Vercel: `ANTHROPIC_API_KEY` (Production, Sensitive; door de gebruiker toegevoegd 8 nov 2026). De functie leest ook `VITE_SUPABASE_URL` en `VITE_SUPABASE_PUBLISHABLE_KEY`/`VITE_SUPABASE_ANON_KEY`.
 - `supabase/schema.sql` kreeg de tabel `scan_usage` en de functies `use_scan()` en `refund_scan()`. **De eigenaar moet het script opnieuw draaien**, anders geeft elke scan de melding dat er vandaag niets meer kan.
-- De app toont de scanknop nu altijd; `VITE_SCAN_URL` wordt niet meer gebruikt en mag uit Vercel weg zodra scannen live werkt. Daarna kan de Linuxcomputer (Ollama, poortwachter, Tailscale Funnel) uit, en kan de map `scanner/` uit de repo.
-- Foto gaat op 1600 px naar de functie (Vercel-limiet voor de body is 4,5 MB; de functie weigert boven 4 MB).
+- De app toont de scanknop nu altijd. De Linuxcomputer (Ollama, poortwachter, Tailscale Funnel) is niet meer nodig en kan uit; de map `scanner/` kan uit de repo.
+- **Meerdere foto's per scan** (maximaal 4, pagina's van één recept): de app stuurt JSON `{ images: [{ type, data }] }` (1600 px, bij 3-4 foto's 1400 px; Vercel-limiet 4,5 MB, de functie weigert boven 4,4 MB). Claude krijgt dan een extra opdracht (`MORE_PAGES`) om alles als één recept te lezen. Telt als één scan voor de daglimiet.
+- **Geen dubbelen:** `mergeIngredients` en `mergeSteps` in `src/parseRecipe.ts` voegen het resultaat samen met wat al in het formulier staat. Ingrediënt dubbel = zelfde naam (zonder hoofdletters/accenten, meervoud-en/-s weg) en zelfde hoeveelheid, of een van beide zonder hoeveelheid. Stap dubbel = zelfde tekst, of een stuk van ≥30 tekens dat in een langere stap staat (de langere blijft). De melding zegt hoeveel er is overgeslagen.
+- `VITE_SCAN_URL` is uit Vercel verwijderd (8 nov 2026); scannen met Haiku werkt live.
 - Bij `npm run dev` werkt scannen niet (geen `/api` lokaal); testen gaat op de live app.
 - Proefscript: `haiku-test/test-haiku.mjs` in de gedeelde notitiemap van de sessie (buiten de repo).
 

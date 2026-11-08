@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ScanError, scanWithAI } from "../aiScan";
-import { parsedAsText } from "../parseRecipe";
+import { MAX_SCAN_PHOTOS, ScanError, scanWithAI } from "../aiScan";
+import { mergeIngredients, mergeSteps, parsedAsText } from "../parseRecipe";
 import { BUCKET, photoUrl, supabase } from "../supabase";
 import { MEALS, TASTES, UNITS, type Recipe, type RecipeInput } from "../types";
 import { shrink } from "../util";
@@ -151,32 +151,41 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
     text: "",
   });
 
-  async function scanPhoto(file: File) {
+  async function scanPhotos(files: File[]) {
     setScan({ busy: true, label: "Voorbereiden…", note: "", text: "" });
     try {
-      const p = await scanWithAI(file, (label) => setScan((s) => ({ ...s, label })));
+      const p = await scanWithAI(files, (label) => setScan((s) => ({ ...s, label })));
       const text = parsedAsText(p);
       if (p.title && !title.trim()) setTitle(p.title);
       if (p.description && !description.trim()) setDescription(p.description);
       if (p.servings) setServings(String(p.servings));
       if (p.minutes && !minutes) setMinutes(String(p.minutes));
-      if (p.ingredients.length) {
-        setIngs((rows) => [
-          ...rows.filter((r) => r.qty.trim() || r.name.trim()),
-          ...p.ingredients.map((i) => ({ key: newKey(), qty: i.qty, unit: i.unit, name: i.name })),
-        ]);
-      }
-      if (p.steps.length) {
-        setSteps((rows) => [...rows.filter((s) => s.text.trim()), ...p.steps.map((text) => ({ key: newKey(), text }))]);
-      }
+      // Add only what isn't in the form yet, so scanning a second page (or the same page again) adds no doubles.
+      const ingMerge = mergeIngredients(
+        ings.filter((r) => r.qty.trim() || r.name.trim()),
+        p.ingredients,
+        (i) => ({ key: newKey(), qty: i.qty, unit: i.unit, name: i.name }),
+      );
+      const stepMerge = mergeSteps(
+        steps.filter((s) => s.text.trim()),
+        p.steps,
+        (text) => ({ key: newKey(), text }),
+      );
+      if (p.ingredients.length) setIngs(ingMerge.rows.length ? ingMerge.rows : [emptyIng()]);
+      if (p.steps.length) setSteps(stepMerge.rows.length ? stepMerge.rows : [emptyStep()]);
+      const addedIngs = p.ingredients.length - ingMerge.skipped;
+      const addedSteps = p.steps.length - stepMerge.skipped;
+      const skipped = ingMerge.skipped + stepMerge.skipped;
       const found = p.ingredients.length + p.steps.length;
       setScan({
         busy: false,
         label: "",
         text,
-        note: found
-          ? `Klaar: ${p.ingredients.length} ingrediënten en ${p.steps.length} stappen gevonden. Controleer alles even, de herkenning maakt soms fouten.`
-          : "Er is weinig herkend. Probeer een scherpere foto: recht van boven, met goed licht en zonder schaduw.",
+        note: !found
+          ? "Er is weinig herkend. Probeer een scherpere foto: recht van boven, met goed licht en zonder schaduw."
+          : `Klaar: ${addedIngs} ingrediënten en ${addedSteps} stappen toegevoegd` +
+            (skipped ? ` (${skipped} stond${skipped === 1 ? "" : "en"} er al en ${skipped === 1 ? "is" : "zijn"} overgeslagen)` : "") +
+            ". Controleer alles even, de herkenning maakt soms fouten. Staat het recept op meer pagina's? Scan dan ook de volgende pagina.",
       });
     } catch (e) {
       const unreadable = e instanceof ScanError && e.kind === "mislukt";
@@ -218,11 +227,12 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
               className="sr-only"
               type="file"
               accept="image/*"
+              multiple
               disabled={scan.busy}
               onChange={(e) => {
-                const file = e.target.files?.[0];
+                const files = Array.from(e.target.files ?? []).slice(0, MAX_SCAN_PHOTOS);
                 e.target.value = "";
-                if (file) scanPhoto(file);
+                if (files.length) scanPhotos(files);
               }}
             />
           </label>
@@ -236,7 +246,7 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
           ) : scan.note ? (
             <p className="scan-note" role="status">{scan.note}</p>
           ) : (
-            <span className="hint">Maak een foto van een recept op papier. De velden hieronder worden zo goed mogelijk ingevuld.</span>
+            <span className="hint">Maak een foto van een recept op papier. Staat het op meer pagina's, kies dan alle foto's tegelijk (maximaal 4) of scan ze na elkaar. Wat er al staat, wordt niet dubbel toegevoegd.</span>
           )}
           {scan.text && !scan.busy && (
             <details className="scan-text">

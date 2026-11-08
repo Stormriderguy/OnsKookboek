@@ -129,6 +129,82 @@ export function normalizeParsed(raw: unknown): ParsedRecipe {
   };
 }
 
+/** Lowercase letters and digits only, without accents: "Avocado's," → "avocados". */
+const plain = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+/** Name of an ingredient for comparing: "Kleine rijpe avocado's" and "kleine rijpe avocado" match. */
+const ingredientKey = (name: string) =>
+  plain(name.replace(/['’]s\b/gi, "s"))
+    .split(" ")
+    .map((w) => (w.length > 4 ? w.replace(/(en|s)$/, "") : w))
+    .join(" ");
+
+/**
+ * Adds scanned ingredients to the rows already in the form, skipping ones that are already there
+ * (same name, and the same amount or no amount on one of them). Returns how many were skipped.
+ */
+export function mergeIngredients<T extends Ingredient>(
+  rows: T[],
+  found: Ingredient[],
+  make: (i: Ingredient) => T,
+): { rows: T[]; skipped: number } {
+  const out = [...rows];
+  let skipped = 0;
+  for (const i of found) {
+    const key = ingredientKey(i.name);
+    const same = (r: T) =>
+      ingredientKey(r.name) === key &&
+      (!r.qty.trim() || !i.qty || (plain(r.qty) === plain(i.qty) && r.unit === i.unit));
+    const at = key ? out.findIndex(same) : -1;
+    if (at < 0) {
+      out.push(make(i));
+      continue;
+    }
+    skipped++;
+    // Already there without an amount: take the amount from the scan.
+    if (!out[at].qty.trim() && i.qty) out[at] = { ...out[at], qty: i.qty, unit: i.unit };
+  }
+  return { rows: out, skipped };
+}
+
+/**
+ * Adds scanned steps to the steps already in the form, skipping text that is already there.
+ * A step that is part of a longer one counts as the same; the longer text is kept.
+ */
+export function mergeSteps<T extends { text: string }>(
+  rows: T[],
+  found: string[],
+  make: (text: string) => T,
+): { rows: T[]; skipped: number } {
+  const out = [...rows];
+  let skipped = 0;
+  for (const text of found) {
+    const key = plain(text);
+    if (!key) continue;
+    const at = out.findIndex((r) => {
+      const k = plain(r.text);
+      if (!k) return false;
+      if (k === key) return true;
+      // Part of a longer step only counts when it is a real piece of text, not one word.
+      const [short, long] = k.length < key.length ? [k, key] : [key, k];
+      return short.length >= 30 && long.includes(short);
+    });
+    if (at < 0) {
+      out.push(make(text));
+      continue;
+    }
+    skipped++;
+    if (key.length > plain(out[at].text).length) out[at] = { ...out[at], text };
+  }
+  return { rows: out, skipped };
+}
+
 /** The result as readable text, for "Herkende tekst bekijken". */
 export function parsedAsText(p: ParsedRecipe): string {
   const meta = [p.servings && `${p.servings} personen`, p.minutes && `${p.minutes} minuten`].filter(Boolean).join(" · ");
