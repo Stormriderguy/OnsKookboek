@@ -58,10 +58,10 @@ De code staat in [github.com/Stormriderguy/OnsKookboek](https://github.com/Storm
 ### 5. Vercel
 
 1. Importeer de GitHub-repository in Vercel (**Add New → Project**). Kies bij **Application Preset** de optie **Vite**.
-2. Ga naar **Settings → Environment Variables** en voeg toe, allebei als type **Config**, voor alle omgevingen:
+2. Ga naar **Settings → Environment Variables** en voeg toe:
    - `VITE_SUPABASE_URL`: de Project URL uit Supabase (knop **Connect**)
    - `VITE_SUPABASE_ANON_KEY` (of `VITE_SUPABASE_PUBLISHABLE_KEY`, zoals Supabase hem noemt): de **publishable**- of **anon**-sleutel uit Supabase
-   - `VITE_SCAN_URL` (optioneel): het adres van de scanner op jullie eigen computer, zie [scanner/README.md](scanner/README.md). Laat je dit leeg, dan heeft de app geen scanknop.
+   - `ANTHROPIC_API_KEY`: de API-sleutel van Claude voor het scannen (maken op console.anthropic.com → **API Keys**). Alleen voor **Production**, en zet **Sensitive** aan. Deze naam begint bewust niet met `VITE_`: zo blijft de sleutel op de server van Vercel en komt hij nooit in de browser.
 3. Start een nieuwe deploy (**Deployments → ⋯ → Redeploy**), zodat de sleutels worden meegenomen.
 
 Gebruik nooit de `service_role`- of `secret`-sleutel: die geeft volledige toegang tot de database.
@@ -90,12 +90,14 @@ Elke push naar de branch `main` op GitHub zet Vercel automatisch online. In Verc
 
 ## Recept scannen van een foto
 
-In het receptformulier staat de knop **Recept scannen van foto**. De app stuurt de foto naar een AI-model (Ollama) op jullie eigen Linuxcomputer. Dat model leest het recept, ook bij pagina's met twee kolommen, en vult de naam, het aantal personen, de tijd, de ingrediënten en de stappen in. Controleer het resultaat altijd even.
+In het receptformulier staat de knop **Recept scannen van foto**. De app stuurt de foto naar een kleine functie op Vercel (`api/scan.ts`), die hem laat lezen door Claude Haiku. Die leest het recept, ook bij pagina's met twee kolommen, en vult de naam, het aantal personen, de tijd, de ingrediënten en de stappen in. Controleer het resultaat altijd even.
 
-- Het instellen van die computer staat in [scanner/README.md](scanner/README.md).
-- Een scan duurt een paar minuten (met het model qwen2.5vl:7b ongeveer 5 à 6 minuten). Als iemand anders al aan het scannen is, wacht je even in de rij.
-- Iedereen kan maximaal 30 foto's per dag laten lezen. Staat de computer uit, of is het maximum bereikt, dan meldt de app: "Er kunnen vandaag geen foto's meer worden verwerkt."
+- Een scan duurt ongeveer 10 seconden en kost ongeveer 0,15 cent.
+- Nodig: `ANTHROPIC_API_KEY` in Vercel (zie hierboven) en tegoed op console.anthropic.com. Zet daar bij **Limits** een maandlimiet, bijvoorbeeld $5.
+- Iedereen kan maximaal 100 foto's per dag laten lezen (bijgehouden in Supabase, functie `use_scan`). Is het maximum bereikt, of is Claude niet bereikbaar, dan meldt de app: "Er kunnen vandaag geen foto's meer worden verwerkt."
 - Onder **Herkende tekst bekijken** staat alles wat gelezen is.
+- De map `scanner/` is de oude scanner via Ollama op een eigen Linuxcomputer. Die is niet meer nodig.
+- Bij `npm run dev` op je eigen computer werkt scannen niet (de functie draait alleen op Vercel).
 
 ## Goed om te weten
 

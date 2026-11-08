@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { SCAN_URL, ScanError, scanWithAI } from "../aiScan";
+import { ScanError, scanWithAI } from "../aiScan";
 import { parsedAsText } from "../parseRecipe";
 import { BUCKET, photoUrl, supabase } from "../supabase";
 import { MEALS, TASTES, UNITS, type Recipe, type RecipeInput } from "../types";
@@ -210,7 +210,7 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
       </div>
 
       <div className="sec">
-        {SCAN_URL && <div className="scanbox">
+        <div className="scanbox">
           <label className={"btn scan-btn" + (scan.busy ? " busy" : "")} aria-disabled={scan.busy}>
             <CameraIcon />
             {scan.busy ? "Bezig met scannen…" : "Recept scannen van foto"}
@@ -244,7 +244,7 @@ export function RecipeEditor({ recipe: r, uid, onCancel, onSaved }: Props) {
               <pre>{scan.text}</pre>
             </details>
           )}
-        </div>}
+        </div>
 
         <div className="field">
           <label htmlFor="title-in">Naam van het recept</label>

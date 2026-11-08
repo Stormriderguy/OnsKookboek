@@ -1,4 +1,4 @@
-# Overdracht Ons Kookboek (stand 7 november 2026)
+# Overdracht Ons Kookboek (stand 8 november 2026)
 
 Lees ook `CLAUDE.md` (projectopdracht) en `README.md` (stappen voor de eigenaar).
 
@@ -16,13 +16,13 @@ Lees ook `CLAUDE.md` (projectopdracht) en `README.md` (stappen voor de eigenaar)
 - Na elke wijziging aan `supabase/schema.sql` moet de eigenaar dat script opnieuw draaien in Supabase (SQL Editor → Run). Het script kan veilig opnieuw draaien; als resultaat verschijnt "off".
 
 ## Stack en opbouw
-Vite + React + TypeScript, gewone CSS met design tokens (basilicumgroen, licht en donker thema), `@supabase/supabase-js`, en `tesseract.js` voor het scannen.
+Vite + React + TypeScript, gewone CSS met design tokens (basilicumgroen, licht en donker thema), `@supabase/supabase-js`, en `@anthropic-ai/sdk` voor het scannen (alleen in de Vercel-functie).
 - `src/App.tsx`: sessie en profiel; toont het codescherm (`Join`) of het kookboek (`Cookbook`).
 - `src/components/Join.tsx`: gezamenlijke code + voornaam + achternaam.
 - `src/components/Cookbook.tsx`: kopbalk, live recepten (Realtime), favorieten, filters en zoeken, kaarten.
 - `src/components/FilterMenu.tsx`: uitklapmenu rechtsboven; op de telefoon over de volle breedte met inklapbare kopjes (+/−).
 - `src/components/RecipeDetail.tsx` en `RecipeEditor.tsx`: recept bekijken, en toevoegen/bewerken met foto's en de scanknop.
-- `src/ocr.ts` en `src/parseRecipe.ts`: tekst van een foto lezen (Tesseract, Nederlands) en omzetten naar receptvelden.
+- `api/scan.ts`: Vercel-functie die een receptfoto laat lezen door Claude Haiku 5.5. `src/aiScan.ts` roept hem aan, `normalizeParsed` in `src/parseRecipe.ts` maakt het resultaat passend.
 - `supabase/schema.sql`: tabellen, beveiliging, toegangscode, foto-opslag en Realtime.
 
 ## Toegang en inloggen (zo gewenst door de gebruiker)
@@ -44,14 +44,16 @@ Vite + React + TypeScript, gewone CSS met design tokens (basilicumgroen, licht e
 - Foto's worden verkleind voor het uploaden; ongebruikte foto's worden opgeruimd.
 - Te installeren op de telefoon (webmanifest en iconen); geen inzoomen op iPhone bij het typen.
 
-## Scannen met Ollama (gekozen 7 nov 2026)
-Tesseract is uit de app gehaald. De scan loopt nu via Ollama op de eigen Linuxcomputer van de gebruiker: een HP Z240 SFF met een i7-6700, 16 GB werkgeheugen en geen bruikbare videokaart. Een scan duurt daar ongeveer 1 tot 3 minuten.
-- `scanner/`: de poortwachter (`server.mjs`, Node zonder extra pakketten), een systemd-unit, `scanner.env.example` en een `README.md` met de installatiestappen. Hij controleert het Supabase-token via `rpc/is_member`, houdt een wachtrij bij (1 scan tegelijk, maximaal 10 wachtend) en een daglimiet (30 per persoon; een scan die mislukt omdat Ollama uit staat, telt niet mee). Foto's mogen maximaal 8 MB zijn, CORS staat alleen open voor de app, en foto's worden niet bewaard.
-- Verbinding: Tailscale Funnel (`tailscale funnel --bg 8787`) → https-adres `*.ts.net`. Ollama blijft op 127.0.0.1.
-- App: `src/aiScan.ts` (versturen en elke 2 seconden de stand opvragen, maximaal 10 minuten) en `normalizeParsed` in `src/parseRecipe.ts`. Is de scanner onbereikbaar of het limiet bereikt, dan meldt de app: "Er kunnen vandaag geen foto's meer worden verwerkt." Zonder `VITE_SCAN_URL` is er geen scanknop.
-- De Linuxcomputer is ingericht: `https://santifort-hp-z240-sff-workstation.tail7c0a15.ts.net`, model `qwen2.5vl:7b`. Die staat ook in Vercel als `VITE_SCAN_URL`.
-- Getest op 7 nov 2026 met de omeletfoto (twee kolommen): alle 11 ingrediënten goed, de bereiding volledig maar in 15 losse zinnen in plaats van 3 alinea's, en één leesfout ("scheep"). Duur: ±5,5 minuten. Daarvoor moest Ollama gestreamd worden (de fetch van Node stopt na 5 minuten zonder antwoord).
-- Mogelijke verbeteringen: `qwen2.5vl:3b` proberen voor snelheid, of de opdracht laten vragen om alinea's als stappen.
+## Scannen met Claude Haiku (gekozen 8 nov 2026)
+De gebruiker wil de Linuxcomputer niet meer gebruiken. Ollama (±3½ min per scan) is vervangen door Claude Haiku 5.5 via een Vercel-functie.
+- **Proef 8 nov 2026** (omeletfoto, twee kolommen): titel, alle 11 ingrediënten en 3 stappen correct in ±8 s, ±0,15 cent per scan. Effort `low` en `medium` gaven precies hetzelfde resultaat; de functie gebruikt `low`.
+- `api/scan.ts`: POST met de foto als body en het Supabase-token. Roept eerst `rpc/use_scan` aan (lid + daglimiet 100, telt meteen één scan), dan Claude met structured output (zelfde opdracht en schema als de oude scanner). Bij een fout `rpc/refund_scan`. Antwoorden: 200 recept, 401, 413/415/422 (foto onleesbaar → "mislukt"), 429 limiet, 503 (→ "Er kunnen vandaag geen foto's meer worden verwerkt").
+- Omgevingsvariabelen in Vercel: `ANTHROPIC_API_KEY` (Production, Sensitive; door de gebruiker toegevoegd 8 nov 2026). De functie leest ook `VITE_SUPABASE_URL` en `VITE_SUPABASE_PUBLISHABLE_KEY`/`VITE_SUPABASE_ANON_KEY`.
+- `supabase/schema.sql` kreeg de tabel `scan_usage` en de functies `use_scan()` en `refund_scan()`. **De eigenaar moet het script opnieuw draaien**, anders geeft elke scan de melding dat er vandaag niets meer kan.
+- De app toont de scanknop nu altijd; `VITE_SCAN_URL` wordt niet meer gebruikt en mag uit Vercel weg zodra scannen live werkt. Daarna kan de Linuxcomputer (Ollama, poortwachter, Tailscale Funnel) uit, en kan de map `scanner/` uit de repo.
+- Foto gaat op 1600 px naar de functie (Vercel-limiet voor de body is 4,5 MB; de functie weigert boven 4 MB).
+- Bij `npm run dev` werkt scannen niet (geen `/api` lokaal); testen gaat op de live app.
+- Proefscript: `haiku-test/test-haiku.mjs` in de gedeelde notitiemap van de sessie (buiten de repo).
 
 ## Nog te controleren bij de gebruiker
 - Is de laatste versie van `supabase/schema.sql` gedraaid? Daarin zitten de regel dat alleen de plaatser bewerkt en verwijdert, en de opgeslagen namen. Controleren kan met de publishable key: `GET /rest/v1/recipes?select=created_by_name` geeft `[]` (en geen foutmelding) als het script gedraaid is.

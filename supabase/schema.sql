@@ -254,6 +254,62 @@ grant execute on function public.join_cookbook(text, text) to authenticated;
 grant execute on function public.is_member() to authenticated;
 
 -- ============================================================
+-- Scannen: daglimiet van 100 scans per persoon (de scanfunctie in Vercel roept dit aan)
+-- ============================================================
+
+create table if not exists public.scan_usage (
+  user_id uuid not null references auth.users on delete cascade,
+  day date not null,
+  count int not null default 0,
+  primary key (user_id, day)
+);
+-- Geen regels: alleen de functies hieronder komen erbij.
+alter table public.scan_usage enable row level security;
+
+-- Telt één scan voor vandaag. Geeft true als het mag (lid en onder de 100 vandaag), anders false.
+create or replace function public.use_scan()
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := auth.uid();
+  v_today date := (now() at time zone 'Europe/Amsterdam')::date;
+  used int;
+begin
+  if uid is null or not exists (select 1 from public.profiles where id = uid) then
+    return false;
+  end if;
+  delete from public.scan_usage where day < v_today - 7;
+  insert into public.scan_usage (user_id, day, count) values (uid, v_today, 1)
+  on conflict (user_id, day) do update set count = public.scan_usage.count + 1
+  returning count into used;
+  if used > 100 then
+    update public.scan_usage set count = 100 where user_id = uid and day = v_today;
+    return false;
+  end if;
+  return true;
+end;
+$$;
+
+-- Een scan die mislukte, telt niet mee.
+create or replace function public.refund_scan()
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  update public.scan_usage set count = greatest(count - 1, 0)
+  where user_id = auth.uid() and day = (now() at time zone 'Europe/Amsterdam')::date;
+$$;
+
+revoke all on function public.use_scan() from public, anon;
+revoke all on function public.refund_scan() from public, anon;
+grant execute on function public.use_scan() to authenticated;
+grant execute on function public.refund_scan() to authenticated;
+
+-- ============================================================
 -- Beveiliging (Row Level Security): alles alleen voor leden
 -- ============================================================
 
