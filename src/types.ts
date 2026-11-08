@@ -27,6 +27,8 @@ export type Recipe = {
   servings: number | null;
   ingredients: Ingredient[] | null;
   steps: string[] | null;
+  /** Free notes: tips, variations, where the recipe comes from. */
+  notes?: string | null;
   photos: string[] | null;
   created_at: string;
   created_by: string | null;
@@ -40,7 +42,7 @@ export type Recipe = {
 /** The fields the editor writes; who/when is filled in by the database. */
 export type RecipeInput = Pick<
   Recipe,
-  "title" | "description" | "meals" | "tastes" | "kinds" | "mains" | "minutes" | "servings" | "ingredients" | "steps" | "photos"
+  "title" | "description" | "meals" | "tastes" | "kinds" | "mains" | "minutes" | "servings" | "ingredients" | "steps" | "notes" | "photos"
 >;
 
 export type SortKey = "new" | "az" | "time";

@@ -28,6 +28,7 @@ create table if not exists public.recipes (
   tastes text[] default '{}',
   kinds text[] default '{}',       -- soort gerecht: Soep, Taart & cake, …
   mains text[] default '{}',       -- hoofdingrediënt: Vlees, Vis, Vegetarisch, …
+  notes text default '',          -- notities: tips, variaties, waar het recept vandaan komt
   minutes int,
   servings int,
   ingredients jsonb default '[]',  -- [{qty, unit, name}]
@@ -42,6 +43,7 @@ create table if not exists public.recipes (
 -- Toegevoegd na de eerste versie: soort gerecht en hoofdingrediënt (voor bestaande databases).
 alter table public.recipes add column if not exists kinds text[] default '{}';
 alter table public.recipes add column if not exists mains text[] default '{}';
+alter table public.recipes add column if not exists notes text default '';
 
 -- Favorieten per persoon
 create table if not exists public.favorites (

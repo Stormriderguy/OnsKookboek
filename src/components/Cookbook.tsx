@@ -161,7 +161,7 @@ export function Cookbook({ uid, myName }: Props) {
       if (kind && !(r.kinds ?? []).includes(kind)) return false;
       if (main && !(r.mains ?? []).includes(main)) return false;
       if (needle) {
-        const hay = [r.title, r.description ?? "", ...(r.ingredients ?? []).map((i) => i.name)].join(" ").toLowerCase();
+        const hay = [r.title, r.description ?? "", r.notes ?? "", ...(r.ingredients ?? []).map((i) => i.name)].join(" ").toLowerCase();
         if (!hay.includes(needle)) return false;
       }
       return true;

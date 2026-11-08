@@ -45,6 +45,7 @@ export function RecipeEditor({ recipe: r, copyOf, uid, onCancel, onSaved }: Prop
     const rows = (src?.steps ?? []).map((text) => ({ key: newKey(), text }));
     return rows.length ? rows : [emptyStep(), emptyStep()];
   });
+  const [notes, setNotes] = useState(src?.notes ?? "");
   const [photos, setPhotos] = useState<string[]>(r?.photos ?? []);
   const [uploading, setUploading] = useState(0);
   const [err, setErr] = useState("");
@@ -158,6 +159,7 @@ export function RecipeEditor({ recipe: r, copyOf, uid, onCancel, onSaved }: Prop
         .map((i) => ({ qty: i.qty.trim(), unit: i.unit, name: i.name.trim() }))
         .filter((i) => i.name || i.qty),
       steps: steps.map((s) => s.text.trim()).filter(Boolean),
+      notes: notes.trim(),
       photos,
     };
     const { data, error } = isNew
@@ -639,6 +641,18 @@ export function RecipeEditor({ recipe: r, copyOf, uid, onCancel, onSaved }: Prop
             </button>
           </div>
         </fieldset>
+
+        <div className="field">
+          <label htmlFor="notes-in">Notities</label>
+          <textarea
+            className="in"
+            id="notes-in"
+            rows={3}
+            placeholder="Tips, variaties, waar het recept vandaan komt…"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="formfoot">

@@ -74,6 +74,7 @@ Gebruik nooit de `service_role`- of `secret`-sleutel: die geeft volledige toegan
 - **Het hele kookboek als PDF:** elke maandagnacht maakt Vercel automatisch een PDF van alle recepten (voorblad, inhoudsopgave, per recept een pagina met een kleine foto). Alleen de nieuwste wordt bewaard, in Supabase (map `kookboek-pdf`, alleen voor leden). Downloaden kan in het menu **Filters** → **Kookboek als PDF**. Met **Nu bijwerken** maak je hem meteen opnieuw (hooguit eens per 10 minuten).
 - **Eén recept delen of afdrukken:** in een recept staat **Delen of afdrukken**. Op de telefoon opent het deelmenu (WhatsApp, mail, afdrukken …); op de computer wordt de PDF gedownload.
 - **Recepten passen op één pagina:** is een recept lang, dan wordt de foto kleiner en komen ingrediënten en bereiding naast elkaar te staan. Alleen een heel lang recept loopt door op een volgende pagina.
+- **Notities:** onder de bereiding staat een vrij notitieveld voor tips, variaties of waar het recept vandaan komt. De notities staan in het recept, in de PDF en worden meegenomen bij het zoeken. (Nieuwe kolom `notes`: `supabase/schema.sql` één keer opnieuw draaien.)
 - **Kopiëren:** met **Kopiëren** maak je een eigen versie van een recept van iemand anders. Je past aan wat je wilt en slaat het op als nieuw recept op je eigen naam; het origineel blijft zoals het is. De foto's worden mee gekopieerd.
 
 Voor de PDF moet `supabase/schema.sql` één keer opnieuw gedraaid worden (nieuwe map `kookboek-pdf`), en moeten `SUPABASE_SECRET_KEY` en `CRON_SECRET` in Vercel staan (zie hierboven).

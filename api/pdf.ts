@@ -30,6 +30,7 @@ type Row = {
   servings: number | null;
   ingredients: Ingredient[] | null;
   steps: string[] | null;
+  notes?: string | null;
   photos: string[] | null;
   created_at: string;
   created_by_name: string | null;
@@ -432,6 +433,16 @@ function layoutRecipe(doc: PDFDocument | null, f: Fonts, r: Row, image: PDFImage
     ingredients(M, width, y);
     y -= 8;
     method(M, width, y);
+  }
+
+  // Notes, across the whole width
+  if (r.notes?.trim()) {
+    y -= 8;
+    room(z(14) + 20);
+    y -= z(14);
+    page.drawText("Notities", { x: M, y, size: z(14), font: f.bold, color: ROSE });
+    y -= 10;
+    for (const part of r.notes.trim().split(/\n+/)) para(part, f.body, z(11), INK, M, width, z(4.5));
   }
 
   // Who added it

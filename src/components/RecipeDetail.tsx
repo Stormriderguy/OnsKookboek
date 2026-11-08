@@ -129,6 +129,12 @@ export function RecipeDetail({ recipe: r, canEdit, names, fav, onFav, onEdit, on
             )}
           </div>
         </div>
+        {r.notes?.trim() && (
+          <div className="notes">
+            <h4>Notities</h4>
+            <p>{r.notes}</p>
+          </div>
+        )}
         {by.length > 0 && <div className="by">{by.join(" · ")}</div>}
         {!canEdit ? null : !confirming ? (
           <div>
